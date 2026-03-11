@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EvCalc v4 — EV & Field Calculator Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/*──────────────────────────────────────────────────────────
+  RESET & BASE
+──────────────────────────────────────────────────────────*/
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Inter',sans-serif;color:#111827;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+select{appearance:none;-webkit-appearance:none}
+input::placeholder{color:#9ca3af}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#f1f3f7}
+::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}
+
+/*──────────────────────────────────────────────────────────
+  LAYOUT — MOBILE FIRST
+──────────────────────────────────────────────────────────*/
+body{background:#f1f3f7}
+
+/* Mobile: full-width single column */
+.app-shell{display:flex;min-height:100vh}
+
+/* SIDEBAR (desktop only) */
+.sidebar{
+  display:none; /* hidden on mobile */
+  width:220px;
+  flex-shrink:0;
+  background:linear-gradient(180deg,#0f172a 0%,#1e3a5f 100%);
+  position:fixed;top:0;left:0;bottom:0;
+  z-index:200;
+  flex-direction:column;
+  padding:0 0 24px 0;
+  overflow-y:auto;
+}
+.sidebar-logo{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo-title{font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px}
+.sidebar-logo-sub{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.sidebar-nav{padding:12px 10px;flex:1}
+.snav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:3px;border:none;background:transparent;width:100%;text-align:left}
+.snav-item:hover{background:rgba(255,255,255,.08)}
+.snav-item.active{background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(255,255,255,.1)}
+.snav-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.snav-text{font-size:13px;font-weight:600;color:rgba(255,255,255,.75);flex:1}
+.snav-item.active .snav-text{color:#fff}
+.snav-badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:99px;letter-spacing:.5px}
+
+/* MAIN CONTENT AREA */
+.main-content{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+
+/* MOBILE TOPBAR */
+.mobile-tbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 16px;
+  position:sticky;top:0;z-index:50;
+  box-shadow:0 1px 0 rgba(0,0,0,.08);
+}
+.tbar-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.2px}
+.tbar-sub{font-size:10px;color:rgba(255,255,255,.6);margin-top:1px}
+.back-btn{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.back-btn:hover{background:rgba(255,255,255,.3)}
+
+/* MOBILE BOTTOM NAV */
+.mobile-bnav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#fff;
+  border-top:1px solid #e5e7eb;
+  display:flex;
+  z-index:100;
+  box-shadow:0 -2px 10px rgba(0,0,0,.06);
+}
+.nb{flex:1;padding:8px 0 11px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.ni{font-size:17px;transition:filter .2s}
+.nl{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;transition:color .2s}
+.ndot{width:14px;height:2px;border-radius:99px;background:#2563eb;position:absolute;bottom:3px;opacity:0;transition:opacity .2s}
+.nb.active .nl{color:#2563eb;font-weight:700}
+.nb.active .ndot{opacity:1}
+.nb:not(.active) .ni{filter:grayscale(1) opacity(.4)}
+.nb:not(.active) .nl{color:#9ca3af}
+
+/* SCREENS */
+.screen{display:none;flex:1;min-height:100vh;background:#f1f3f7;padding-bottom:86px}
+.screen.active{display:block}
+
+/*──────────────────────────────────────────────────────────
+  DESKTOP BREAKPOINT (≥900px)
+──────────────────────────────────────────────────────────*/
+@media(min-width:900px){
+  body{background:#e8ecf2}
+  .app-shell{padding-left:220px}
+  .sidebar{display:flex}
+  .mobile-tbar{display:none}
+  .mobile-bnav{display:none}
+  .screen{padding-bottom:24px;min-height:100vh}
+  .screen.active{display:block}
+
+  /* Desktop page header inside content */
+  .desktop-page-header{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:22px 28px 0;
+  }
+  .desktop-page-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .desktop-page-title{font-size:22px;font-weight:800;color:#111827;letter-spacing:-0.3px}
+  .desktop-page-sub{font-size:12px;color:#6b7280;margin-top:2px}
+
+  /* Content padding on desktop */
+  .page-body{padding:16px 28px 28px}
+
+  /* Desktop grid for productivity page */
+  .dt-prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .dt-prod-full{grid-column:1/-1}
+
+  /* Desktop 3-col result grid */
+  .dt-result-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .dt-result-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+}
+@media(max-width:899px){
+  .desktop-page-header{display:none}
+  .page-body{padding:12px 14px 14px}
+  .dt-prod-grid{display:flex;flex-direction:column;gap:10px}
+  .dt-prod-full{}
+  .dt-result-3{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .dt-result-4{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+}
+
+/*──────────────────────────────────────────────────────────
+  COMPONENTS
+──────────────────────────────────────────────────────────*/
+.wcard{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.chead{padding:10px 15px;border-bottom:1px solid #f3f4f6;background:#fafafa;display:flex;align-items:center;gap:8px}
+.cbar{width:3px;height:13px;border-radius:2px;flex-shrink:0}
+.clabel{font-size:10px;font-weight:700;letter-spacing:2px;color:#6b7280;text-transform:uppercase}
+
+.irow{padding:11px 15px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;gap:6px;background:#fff}
+.irow:last-child{border-bottom:none}
+.ilbl{font-size:13px;font-weight:600;color:#111827;display:flex;align-items:center;gap:5px}
+.ihnt{font-size:11px;color:#9ca3af;margin-top:2px;margin-left:20px}
+.ifld{text-align:right;padding:7px 10px;background:#f9fafb;border:1.5px solid #d1d5db;border-radius:8px;color:#111827;font-size:15px;font-weight:700;outline:none;font-family:'Inter',sans-serif;transition:border-color .15s;width:88px}
+.ifld:focus{border-color:#2563eb}
+.iunt{font-size:10px;color:#9ca3af;width:42px;line-height:1.3;font-weight:500}
+
+.wfrow{padding:12px 15px;border-bottom:1px solid #f0f0f0}
+.wfrow:last-child{border-bottom:none}
+.wflbl{font-size:13px;font-weight:700;color:#111827;flex:1}
+.wftag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.8px}
+.wfhnt{font-size:11px;color:#9ca3af;margin:3px 0 7px 2px}
+.wffield{width:100%;padding:10px 14px;border-radius:10px;color:#111827;font-size:20px;font-weight:700;outline:none;font-family:'Inter',sans-serif;transition:border-color .15s}
+.wffield:focus{border-color:#2563eb!important}
+.wffmt{font-size:12px;font-weight:600;margin-top:4px;margin-left:2px}
+
+.tgrp{display:flex;background:#f3f4f6;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb}
+.tbtn{padding:6px 12px;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;color:#6b7280;background:transparent}
+.tbtn.on{background:#2563eb;color:#fff;border-radius:7px}
+
+.emi-type-bar{display:flex;background:#f1f3f7;border-radius:10px;padding:4px;gap:4px}
+.emi-type-btn{flex:1;padding:9px 0;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;color:#6b7280;background:transparent}
+.emi-type-btn.active{background:#fff;color:#111827;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+.btn{width:100%;padding:13px;border-radius:12px;color:#fff;font-size:13px;font-weight:700;letter-spacing:.8px;border:none;cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.12);text-transform:uppercase;font-family:'Inter',sans-serif}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.btn:active{transform:scale(.98)}
+
+/* Result cards */
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.rc{border-radius:12px;padding:13px 14px;position:relative;overflow:hidden;border:1.5px solid}
+.rc-icon{position:absolute;right:8px;top:6px;font-size:26px;opacity:.08}
+.rl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.rv{font-size:20px;font-weight:800;line-height:1;font-family:'Inter',sans-serif}
+.ru{font-size:10px;font-weight:500;margin-top:3px}
+.hero-r{border-radius:14px;padding:18px 20px;color:#fff}
+.hero-rl{font-size:9px;font-weight:700;letter-spacing:2px;opacity:.75;margin-bottom:4px}
+.hero-rv{font-size:36px;font-weight:800;line-height:1}
+.hero-rs{font-size:12px;opacity:.7;margin-top:5px}
+.rsec{margin-top:12px;display:flex;flex-direction:column;gap:9px}
+
+.stbl{width:100%;border-collapse:collapse}
+.stbl td{padding:8px 11px;font-size:12px;border-bottom:1px solid #f3f4f6;color:#111827}
+.stbl thead td{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9ca3af;background:#fafafa;padding:9px 11px}
+.stbl tbody tr:last-child td{border-bottom:none}
+.stbl tbody tr:hover{background:#fafafa}
+
+.gap12{display:flex;flex-direction:column;gap:12px}
+.hidden{display:none!important}
+@keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.su{animation:su .3s ease forwards}
+
+/*──────────────────────────────────────────────────────────
+  HOME SCREEN
+──────────────────────────────────────────────────────────*/
+.home-hero{background:linear-gradient(135deg,#0f172a,#1d4ed8);padding:30px 18px 24px}
+@media(min-width:900px){
+  .home-hero{padding:36px 28px 28px}
+  .home-hero h1{font-size:42px}
+  .home-cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+}
+.chip{display:inline-flex;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:10px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.4px}
+.tcard{background:#fff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.tcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.tcard:active{transform:scale(.98)}
+.cpill{padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid;transition:all .15s}
+
+/*──────────────────────────────────────────────────────────
+  PRODUCTIVITY PAGE — two-column inputs
+──────────────────────────────────────────────────────────*/
+.prod-col{background:#fff;border-radius:14px;overflow:hidden;border:1.5px solid;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.prod-col-hdr{padding:11px 13px;display:flex;align-items:center;gap:8px}
+.prod-col-hdr .col-title{font-size:13px;font-weight:700;color:#fff}
+.prod-col-hdr .col-sub{font-size:9px;color:rgba(255,255,255,.6)}
+.prod-irow{padding:9px 12px;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;background:#fff}
+.prod-irow:last-child{border-bottom:none}
+.prod-ilbl{font-size:11px;font-weight:600;color:#374151}
+.prod-ihnt{font-size:9px;color:#9ca3af;margin-top:1px}
+.prod-ifld{width:72px;text-align:right;padding:6px 8px;background:#f9fafb;border:1.5px solid #d1d5db;border-radius:7px;color:#111827;font-size:14px;font-weight:700;outline:none;font-family:'Inter',sans-serif;transition:border-color .15s}
+.prod-ifld:focus{border-color:#2563eb}
+.prod-iunt{font-size:9px;color:#9ca3af;width:26px;line-height:1.2;font-weight:500}
+
+/* COST PER TONNE cards on desktop get wider */
+@media(min-width:900px){
+  .cpt-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+}
+@media(max-width:899px){
+  .cpt-grid{display:flex;flex-direction:column;gap:9px}
+}
+
+/* Versus banner */
+.vs-banner{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);border-radius:14px;padding:16px 18px;color:#fff}
+.vs-grid{display:grid;grid-template-columns:1fr 36px 1fr;gap:8px;align-items:center;margin-top:10px}
+.vs-box{text-align:center;border-radius:10px;padding:12px 6px}
+.vs-val{font-size:28px;font-weight:900;line-height:1}
+.vs-unit{font-size:10px;opacity:.7;margin-top:3px}
+.vs-label{font-size:9px;font-weight:700;letter-spacing:1px;opacity:.7;margin-bottom:5px;text-transform:uppercase}
+
+/* Cost-per-tonne comparison card */
+.cpt-card{border-radius:14px;padding:16px 18px}
+.cpt-head{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;opacity:.8}
+.cpt-val{font-size:30px;font-weight:900;line-height:1}
+.cpt-sub{font-size:11px;margin-top:5px;opacity:.75}
+.cpt-breakdown{margin-top:12px;display:flex;flex-direction:column;gap:3px}
+.cpt-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.cpt-row:last-child{border-bottom:none;font-weight:700;font-size:12px}
+
+/* Winner badge */
+.winner-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;margin-top:10px}
+
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ══════════════════════════════════════════════════════
+     SIDEBAR — desktop only
+══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,#0d9488,#2563eb);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div>
+      <div>
+        <div class="sidebar-logo-title">EvCalc</div>
+        <div class="sidebar-logo-sub">v4.0</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav">
+    <div class="snav-item active" id="snav-home" onclick="nav('home')">
+      <span class="snav-icon">🏠</span><span class="snav-text">Home</span>
+    </div>
+    <div style="padding:8px 12px 4px;font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase">Productivity</div>
+    <div class="snav-item" id="snav-loader" onclick="nav('loader')">
+      <span class="snav-icon">🚜</span>
+      <span class="snav-text">Productivity Calc</span>
+      <span class="snav-badge" style="background:#fff7ed;color:#ea580c">MINING</span>
+    </div>
+    <div style="padding:8px 12px 4px;font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase">Finance</div>
+    <div class="snav-item" id="snav-emi" onclick="nav('emi')">
+      <span class="snav-icon">🏦</span><span class="snav-text">EMI Calculator</span>
+    </div>
+    <div style="padding:8px 12px 4px;font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase">EV Tools</div>
+    <div class="snav-item" id="snav-ev" onclick="nav('ev')">
+      <span class="snav-icon">⚡</span><span class="snav-text">EV Equipment ROI</span>
+    </div>
+    <div class="snav-item" id="snav-charging" onclick="nav('charging')">
+      <span class="snav-icon">🔌</span><span class="snav-text">EV Charging Time</span>
+    </div>
+    <div style="padding:8px 12px 4px;font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.3);text-transform:uppercase">Engineering</div>
+    <div class="snav-item" id="snav-unit" onclick="nav('unit')">
+      <span class="snav-icon">📐</span><span class="snav-text">Unit Converter</span>
+    </div>
+  </nav>
+  <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)">
+    <div style="font-size:10px;color:rgba(255,255,255,.25);font-weight:600;letter-spacing:1px">EVCALC v4.0 · 2025</div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════════════ -->
+<div class="main-content">
+
+<!-- ══ HOME ══ -->
+<div class="screen active" id="screen-home">
+  <div class="mobile-tbar" style="background:linear-gradient(135deg,#0f172a,#1d4ed8)">
+    <span style="font-size:20px">⚡</span>
+    <div><div class="tbar-title">EvCalc</div><div class="tbar-sub">EV & Field Calculator Suite</div></div>
+  </div>
+  <div class="home-hero">
+    <div style="font-size:9px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.45);margin-bottom:8px;text-transform:uppercase">EV & Field Calculator Suite</div>
+    <h1 style="font-size:36px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1">EvCalc</h1>
+    <p style="font-size:13px;color:rgba(255,255,255,.6);margin-top:8px;line-height:1.5">Professional tools for EV engineers,<br>miners &amp; field professionals</p>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <span class="chip">6 Tools</span><span class="chip">Offline Ready</span><span class="chip">Desktop + Mobile</span>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="home-cards-grid gap12" style="margin-top:4px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:-4px">Select a Tool</div>
+
+      <div class="tcard" onclick="nav('loader')">
+        <div style="display:flex;align-items:center;gap:13px;padding:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:#fff7ed;border:1.5px solid #fed7aa;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🚜</div>
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="font-size:15px;font-weight:700;color:#111827">Productivity Calculation</span><span style="font-size:8px;font-weight:700;letter-spacing:1px;color:#ea580c;background:#fff7ed;padding:2px 6px;border-radius:99px">MINING</span></div><div style="font-size:11px;color:#6b7280">EV vs Diesel — cycles, tonnes & cost/tonne</div></div>
+          <span style="font-size:18px;color:#d1d5db">›</span>
+        </div><div style="height:3px;background:linear-gradient(90deg,#f97316,transparent)"></div>
+      </div>
+
+      <div class="tcard" onclick="nav('unit')">
+        <div style="display:flex;align-items:center;gap:13px;padding:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:#eff6ff;border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📐</div>
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="font-size:15px;font-weight:700;color:#111827">Unit Converter</span><span style="font-size:8px;font-weight:700;letter-spacing:1px;color:#2563eb;background:#eff6ff;padding:2px 6px;border-radius:99px">ENGINEERING</span></div><div style="font-size:11px;color:#6b7280">Length, power (kVA→kW PF0.8), energy, force</div></div>
+          <span style="font-size:18px;color:#d1d5db">›</span>
+        </div><div style="height:3px;background:linear-gradient(90deg,#2563eb,transparent)"></div>
+      </div>
+
+      <div class="tcard" onclick="nav('emi')">
+        <div style="display:flex;align-items:center;gap:13px;padding:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:#f0fdf4;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏦</div>
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="font-size:15px;font-weight:700;color:#111827">EMI Calculator</span><span style="font-size:8px;font-weight:700;letter-spacing:1px;color:#16a34a;background:#f0fdf4;padding:2px 6px;border-radius:99px">FINANCE</span></div><div style="font-size:11px;color:#6b7280">Flat rate &amp; reducing balance · Full schedule</div></div>
+          <span style="font-size:18px;color:#d1d5db">›</span>
+        </div><div style="height:3px;background:linear-gradient(90deg,#16a34a,transparent)"></div>
+      </div>
+
+      <div class="tcard" onclick="nav('ev')">
+        <div style="display:flex;align-items:center;gap:13px;padding:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:#f0fdf9;border:1.5px solid #99f6e4;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⚡</div>
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="font-size:15px;font-weight:700;color:#111827">EV Equipment ROI</span><span style="font-size:8px;font-weight:700;letter-spacing:1px;color:#0d9488;background:#f0fdf9;padding:2px 6px;border-radius:99px">EV / GREEN</span></div><div style="font-size:11px;color:#6b7280">Electric vs diesel savings by run hours</div></div>
+          <span style="font-size:18px;color:#d1d5db">›</span>
+        </div><div style="height:3px;background:linear-gradient(90deg,#0d9488,transparent)"></div>
+      </div>
+
+      <div class="tcard" onclick="nav('charging')">
+        <div style="display:flex;align-items:center;gap:13px;padding:16px">
+          <div style="width:48px;height:48px;border-radius:12px;background:#faf5ff;border:1.5px solid #e9d5ff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔌</div>
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="font-size:15px;font-weight:700;color:#111827">EV Charging Time</span><span style="font-size:8px;font-weight:700;letter-spacing:1px;color:#7c3aed;background:#faf5ff;padding:2px 6px;border-radius:99px">EV / CHARGING</span></div><div style="font-size:11px;color:#6b7280">Calculate charge time from battery &amp; charger specs</div></div>
+          <span style="font-size:18px;color:#d1d5db">›</span>
+        </div><div style="height:3px;background:linear-gradient(90deg,#7c3aed,transparent)"></div>
+      </div>
+    </div>
+    <div style="text-align:center;padding:16px 0 8px;font-size:10px;color:#d1d5db;font-weight:600;letter-spacing:2px">EVCALC v4.0</div>
+  </div>
+</div>
+
+<!-- ══ PRODUCTIVITY CALCULATION ══ -->
+<div class="screen" id="screen-loader">
+  <div class="mobile-tbar" style="background:linear-gradient(135deg,#c2410c,#ea580c)">
+    <button class="back-btn" onclick="nav('home')">‹</button>
+    <span style="font-size:20px">🚜</span>
+    <div><div class="tbar-title">Productivity Calculation</div><div class="tbar-sub">EV vs Diesel — Cost per Tonne</div></div>
+  </div>
+  <div class="desktop-page-header">
+    <div class="desktop-page-icon" style="background:#fff7ed;border:1.5px solid #fed7aa">🚜</div>
+    <div>
+      <div class="desktop-page-title">Productivity Calculation</div>
+      <div class="desktop-page-sub">EV vs Diesel — Cycles, Tonnes &amp; Cost per Tonne comparison</div>
+    </div>
+  </div>
+
+  <div class="page-body gap12">
+
+    <!-- ── PRODUCTIVITY INPUTS ── -->
+    <div class="dt-prod-grid">
+
+      <!-- EV Machine -->
+      <div class="prod-col" style="border-color:#0d948840">
+        <div class="prod-col-hdr" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
+          <span style="font-size:18px">⚡</span>
+          <div><div class="col-title">EV Machine</div><div class="col-sub">Electric</div></div>
+        </div>
+        <div class="prod-irow"><div><div class="prod-ilbl">⏱ Cycle Time</div><div class="prod-ihnt">seconds/cycle</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="ev-ct" value="14"/><span class="prod-iunt">sec</span></div></div>
+        <div class="prod-irow"><div><div class="prod-ilbl">🪣 Bucket Volume</div><div class="prod-ihnt">capacity m³</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="ev-bv" value="1.2"/><span class="prod-iunt">m³</span></div></div>
+        <div class="prod-irow"><div><div class="prod-ilbl">🪨 Material Density</div><div class="prod-ihnt">t/m³</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="ev-md" value="1.6"/><span class="prod-iunt">t/m³</span></div></div>
+        <div class="prod-irow"><div><div class="prod-ilbl">🕐 Working Time</div><div class="prod-ihnt">productive min/hr</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="ev-wt" value="50"/><span class="prod-iunt">min/hr</span></div></div>
+        <div class="prod-irow" style="border-bottom:none"><div><div class="prod-ilbl">📊 Fill Factor</div><div class="prod-ihnt">bucket fill %</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="ev-ff" value="90"/><span class="prod-iunt">%</span></div></div>
+      </div>
+
+      <!-- Diesel Machine -->
+      <div class="prod-col" style="border-color:#d9770640">
+        <div class="prod-col-hdr" style="background:linear-gradient(135deg,#b45309,#d97706)">
+          <span style="font-size:18px">⛽</span>
+          <div><div class="col-title">Diesel Machine</div><div class="col-sub">Conventional</div></div>
+        </div>
+        <div class="prod-irow"><div><div class="prod-ilbl">⏱ Cycle Time</div><div class="prod-ihnt">seconds/cycle</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="dl-ct" value="15"/><span class="prod-iunt">sec</span></div></div>
+        <div class="prod-irow"><div><div class="prod-ilbl">🪣 Bucket Volume</div><div class="prod-ihnt">capacity m³</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="dl-bv" value="1.0"/><span class="prod-iunt">m³</span></div></div>
+        <div class="prod-irow"><div><div class="prod-ilbl">🪨 Material Density</div><div class="prod-ihnt">t/m³</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="dl-md" value="1.6"/><span class="prod-iunt">t/m³</span></div></div>
+        <div class="prod-irow"><div><div class="prod-ilbl">🕐 Working Time</div><div class="prod-ihnt">productive min/hr</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="dl-wt" value="50"/><span class="prod-iunt">min/hr</span></div></div>
+        <div class="prod-irow" style="border-bottom:none"><div><div class="prod-ilbl">📊 Fill Factor</div><div class="prod-ihnt">bucket fill %</div></div><div style="display:flex;align-items:center;gap:4px"><input class="prod-ifld" type="number" id="dl-ff" value="85"/><span class="prod-iunt">%</span></div></div>
+      </div>
+
+      <!-- EV Energy & Cost -->
+      <div class="wcard dt-prod-full" style="border-color:#0d948830">
+        <div class="chead" style="background:#d1fae5"><div class="cbar" style="background:#0d9488"></div><span class="clabel" style="color:#065f46">⚡ EV Energy &amp; Cost</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <div class="irow" style="border-right:1px solid #f3f4f6"><div><div class="ilbl" style="font-size:12px">🔋 Energy Consumption</div><div class="ihnt">kWh per machine hour</div></div><div style="display:flex;align-items:center;gap:4px"><input class="ifld" type="number" id="ev-kwh-hr" value="25" style="width:80px"/><span class="iunt">kWh/hr</span></div></div>
+          <div class="irow"><div><div class="ilbl" style="font-size:12px">💡 Electricity Price</div><div class="ihnt">cost per unit</div></div><div style="display:flex;align-items:center;gap:4px"><input class="ifld" type="number" id="ev-elec-price" value="8" style="width:80px"/><span class="iunt">₹/kWh</span></div></div>
+        </div>
+      </div>
+
+      <!-- Diesel Fuel & Cost -->
+      <div class="wcard dt-prod-full" style="border-color:#d9770630">
+        <div class="chead" style="background:#fef3c7"><div class="cbar" style="background:#d97706"></div><span class="clabel" style="color:#92400e">⛽ Diesel Fuel &amp; Cost</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <div class="irow" style="border-right:1px solid #f3f4f6"><div><div class="ilbl" style="font-size:12px">⛽ Fuel Consumption</div><div class="ihnt">litres per machine hour</div></div><div style="display:flex;align-items:center;gap:4px"><input class="ifld" type="number" id="l-fc" value="15" style="width:80px"/><span class="iunt">L/hr</span></div></div>
+          <div class="irow"><div><div class="ilbl" style="font-size:12px">🛢️ Diesel Price</div><div class="ihnt">cost per litre</div></div><div style="display:flex;align-items:center;gap:4px"><input class="ifld" type="number" id="dl-fuel-price" value="100" style="width:80px"/><span class="iunt">₹/L</span></div></div>
+        </div>
+      </div>
+
+    </div><!-- end dt-prod-grid -->
+
+    <button class="btn" style="background:linear-gradient(135deg,#c2410c,#ea580c)" onclick="calcLoader()">⚡ Compare Productivity &amp; Cost per Tonne</button>
+    <div id="loader-results" class="hidden rsec"></div>
+  </div>
+</div>
+
+<!-- ══ UNIT CONVERTER ══ -->
+<div class="screen" id="screen-unit">
+  <div class="mobile-tbar" style="background:linear-gradient(135deg,#1d4ed8,#2563eb)">
+    <button class="back-btn" onclick="nav('home')">‹</button>
+    <span style="font-size:20px">📐</span>
+    <div><div class="tbar-title">Unit Converter</div><div class="tbar-sub">kVA→kW uses PF 0.8</div></div>
+  </div>
+  <div class="desktop-page-header">
+    <div class="desktop-page-icon" style="background:#eff6ff;border:1.5px solid #bfdbfe">📐</div>
+    <div><div class="desktop-page-title">Unit Converter</div><div class="desktop-page-sub">12 categories · kVA↔kW with Power Factor 0.8</div></div>
+  </div>
+  <div class="page-body gap12">
+    <div style="display:flex;flex-wrap:wrap;gap:6px" id="unit-cats"></div>
+    <div class="wcard">
+      <div class="chead"><div class="cbar" style="background:#2563eb"></div><span class="clabel">Conversion</span></div>
+      <div style="padding:15px">
+        <div style="display:grid;grid-template-columns:1fr 32px 1fr;gap:8px;align-items:end">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#9ca3af;margin-bottom:5px">FROM</div>
+            <input type="number" id="unit-input" value="1" style="width:100%;padding:10px 13px;background:#f9fafb;border:1.5px solid #d1d5db;border-radius:9px;color:#111827;font-size:20px;font-family:'Inter',sans-serif;font-weight:700;outline:none"/>
+            <select id="unit-from" style="width:100%;margin-top:5px;padding:8px 10px;background:#fff;border:1.5px solid #d1d5db;border-radius:8px;color:#111827;font-size:12px;font-weight:600;outline:none;cursor:pointer;font-family:'Inter',sans-serif"></select>
+          </div>
+          <div style="font-size:18px;color:#d1d5db;padding-bottom:42px;text-align:center">⇄</div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#9ca3af;margin-bottom:5px">TO</div>
+            <div id="unit-result-box" style="padding:10px 13px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:9px;font-size:20px;font-weight:700;color:#1d4ed8;min-height:46px;font-family:'Inter',sans-serif">—</div>
+            <select id="unit-to" style="width:100%;margin-top:5px;padding:8px 10px;background:#fff;border:1.5px solid #d1d5db;border-radius:8px;color:#111827;font-size:12px;font-weight:600;outline:none;cursor:pointer;font-family:'Inter',sans-serif"></select>
+          </div>
+        </div>
+        <div id="pf-note" class="hidden" style="margin-top:10px;padding:9px 13px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:9px">
+          <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:2px">⚡ POWER FACTOR APPLIED (PF = 0.8)</div>
+          <div id="pf-note-text" style="font-size:11px;color:#78350f;font-weight:500"></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#1d4ed8,#2563eb)" onclick="doConvert()">🔄 Convert</button>
+    <div id="unit-result-label" class="hidden" style="background:#eff6ff;border-radius:12px;padding:14px 16px;border:1.5px solid #bfdbfe">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#9ca3af;margin-bottom:5px">RESULT</div>
+      <div id="unit-result-text" style="font-size:20px;font-weight:800;color:#1d4ed8;font-family:'Inter',sans-serif;word-break:break-all"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EMI ══ -->
+<div class="screen" id="screen-emi">
+  <div class="mobile-tbar" style="background:linear-gradient(135deg,#15803d,#16a34a)">
+    <button class="back-btn" onclick="nav('home')">‹</button>
+    <span style="font-size:20px">🏦</span>
+    <div><div class="tbar-title">EMI Calculator</div><div class="tbar-sub">Flat rate &amp; reducing balance</div></div>
+  </div>
+  <div class="desktop-page-header">
+    <div class="desktop-page-icon" style="background:#f0fdf4;border:1.5px solid #bbf7d0">🏦</div>
+    <div><div class="desktop-page-title">EMI Calculator</div><div class="desktop-page-sub">Flat rate &amp; reducing balance · Full amortization schedule</div></div>
+  </div>
+  <div class="page-body gap12">
+    <div class="wcard" style="padding:14px 15px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#6b7280;text-transform:uppercase;margin-bottom:8px">Calculation Method</div>
+      <div class="emi-type-bar">
+        <button class="emi-type-btn active" id="emi-reducing-btn" onclick="setEmiType('reducing')">📉 Reducing Balance<br><span style="font-size:9px;font-weight:500;color:#6b7280">Interest on remaining balance</span></button>
+        <button class="emi-type-btn" id="emi-flat-btn" onclick="setEmiType('flat')">📊 Flat Rate<br><span style="font-size:9px;font-weight:500;color:#6b7280">Interest on full principal</span></button>
+      </div>
+    </div>
+    <div class="wcard">
+      <div class="chead"><div class="cbar" style="background:#16a34a"></div><span class="clabel">Loan Details</span></div>
+      <div class="irow"><div><div class="ilbl">💰 Loan Amount</div><div class="ihnt">Principal amount</div></div><div style="display:flex;align-items:center;gap:5px"><input class="ifld" type="number" id="e-p" value="500000"/><span class="iunt">₹</span></div></div>
+      <div class="irow"><div><div class="ilbl">📈 Interest Rate</div><div class="ihnt">Annual interest rate</div></div><div style="display:flex;align-items:center;gap:5px"><input class="ifld" type="number" id="e-r" value="8.5" step="0.1"/><span class="iunt">% p.a.</span></div></div>
+      <div class="irow" style="border-bottom:none">
+        <div><div class="ilbl">📅 Tenure</div><div class="ihnt">Repayment period</div></div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <input class="ifld" type="number" id="e-t" value="60" style="width:70px"/>
+          <div class="tgrp">
+            <button class="tbtn on" id="btn-mo" onclick="setTenure('months')">MO</button>
+            <button class="tbtn" id="btn-yr" onclick="setTenure('years')">YR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#15803d,#16a34a)" onclick="calcEMI()">💳 Calculate EMI</button>
+    <div id="emi-results" class="hidden rsec"></div>
+  </div>
+</div>
+
+<!-- ══ EV ROI ══ -->
+<div class="screen" id="screen-ev">
+  <div class="mobile-tbar" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
+    <button class="back-btn" onclick="nav('home')">‹</button>
+    <span style="font-size:20px">⚡</span>
+    <div><div class="tbar-title">EV Equipment ROI</div><div class="tbar-sub">Payback hours &amp; cumulative cost chart</div></div>
+  </div>
+  <div class="desktop-page-header">
+    <div class="desktop-page-icon" style="background:#f0fdf9;border:1.5px solid #99f6e4">⚡</div>
+    <div><div class="desktop-page-title">EV Equipment ROI</div><div class="desktop-page-sub">Electric vs Diesel — annual savings, payback period &amp; chart</div></div>
+  </div>
+  <div class="page-body gap12">
+    <div style="background:#f0fdf9;border-radius:14px;overflow:hidden;border:1.5px solid #a7f3d0">
+      <div class="chead" style="background:#d1fae5"><div class="cbar" style="background:#0d9488"></div><span class="clabel" style="color:#065f46">Machine Purchase Cost</span></div>
+      <div class="wfrow" style="background:#f0fdf9">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>⚡</span><span class="wflbl" style="color:#065f46">EV Machine Price</span><span class="wftag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">₹</span></div>
+        <div class="wfhnt">Total purchase cost of EV equipment</div>
+        <input class="wffield" type="number" id="ev-evprice" value="50000000" style="background:#fff;border:1.5px solid #a7f3d0" oninput="updateFmt('ev-evprice','fmt-evprice','#0d9488')"/>
+        <div class="wffmt" id="fmt-evprice" style="color:#0d9488"></div>
+      </div>
+      <div class="wfrow" style="background:#f0fdf9;border-bottom:none">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>🚜</span><span class="wflbl">Diesel Machine Price</span><span class="wftag" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db">₹</span></div>
+        <div class="wfhnt">Total purchase cost of diesel equipment</div>
+        <input class="wffield" type="number" id="ev-dslprice" value="35000000" style="background:#fff;border:1.5px solid #d1d5db" oninput="updateFmt('ev-dslprice','fmt-dslprice','#374151')"/>
+        <div class="wffmt" id="fmt-dslprice" style="color:#374151"></div>
+      </div>
+    </div>
+    <div style="background:#f0fdf9;border-radius:14px;overflow:hidden;border:1.5px solid #a7f3d0">
+      <div class="chead" style="background:#d1fae5"><div class="cbar" style="background:#0d9488"></div><span class="clabel" style="color:#065f46">Machine Run Hours</span></div>
+      <div class="wfrow" style="background:#f0fdf9">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>⏱</span><span class="wflbl" style="color:#065f46">Daily Run Hours</span><span class="wftag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">hrs/day</span></div>
+        <div class="wfhnt">Machine operating hours per day</div>
+        <input class="wffield" type="number" id="ev-dhr" value="8" style="background:#fff;border:1.5px solid #a7f3d0"/>
+      </div>
+      <div class="wfrow" style="background:#f0fdf9;border-bottom:none">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>📅</span><span class="wflbl" style="color:#065f46">Working Days / Year</span><span class="wftag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">days</span></div>
+        <div class="wfhnt">Number of working days per year</div>
+        <input class="wffield" type="number" id="ev-wdy" value="300" style="background:#fff;border:1.5px solid #a7f3d0"/>
+      </div>
+    </div>
+    <div style="background:#f0fdf9;border-radius:14px;overflow:hidden;border:1.5px solid #a7f3d0">
+      <div class="chead" style="background:#d1fae5"><div class="cbar" style="background:#0d9488"></div><span class="clabel" style="color:#065f46">EV Running Cost — Per Hour</span></div>
+      <div class="wfrow" style="background:#f0fdf9">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>🔋</span><span class="wflbl" style="color:#065f46">Energy Consumption</span><span class="wftag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">kWh/hr</span></div>
+        <div class="wfhnt">EV power draw per run hour</div>
+        <input class="wffield" type="number" id="ev-kwh" value="25" style="background:#fff;border:1.5px solid #a7f3d0"/>
+      </div>
+      <div class="wfrow" style="background:#f0fdf9">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>💡</span><span class="wflbl" style="color:#065f46">Electricity Cost</span><span class="wftag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">₹/kWh</span></div>
+        <div class="wfhnt">Cost per unit of electricity</div>
+        <input class="wffield" type="number" id="ev-elec" value="8" style="background:#fff;border:1.5px solid #a7f3d0"/>
+      </div>
+      <div class="wfrow" style="background:#f0fdf9;border-bottom:none">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>🔧</span><span class="wflbl" style="color:#065f46">EV Maintenance</span><span class="wftag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">₹/hr</span></div>
+        <div class="wfhnt">EV service cost per run hour</div>
+        <input class="wffield" type="number" id="ev-emnt" value="50" style="background:#fff;border:1.5px solid #a7f3d0"/>
+      </div>
+    </div>
+    <div style="background:#fffbeb;border-radius:14px;overflow:hidden;border:1.5px solid #fcd34d">
+      <div class="chead" style="background:#fef3c7"><div class="cbar" style="background:#d97706"></div><span class="clabel" style="color:#92400e">Diesel Running Cost — Per Hour</span></div>
+      <div class="wfrow" style="background:#fffbeb">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>⛽</span><span class="wflbl" style="color:#92400e">Fuel Consumption</span><span class="wftag" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">L/hr</span></div>
+        <div class="wfhnt">Diesel consumed per run hour</div>
+        <input class="wffield" type="number" id="ev-dlhr" value="15" style="background:#fff;border:1.5px solid #fcd34d"/>
+      </div>
+      <div class="wfrow" style="background:#fffbeb">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>🛢️</span><span class="wflbl" style="color:#92400e">Diesel Price</span><span class="wftag" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">₹/L</span></div>
+        <div class="wfhnt">Cost per litre of diesel</div>
+        <input class="wffield" type="number" id="ev-dprc" value="100" style="background:#fff;border:1.5px solid #fcd34d"/>
+      </div>
+      <div class="wfrow" style="background:#fffbeb;border-bottom:none">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span>🔧</span><span class="wflbl" style="color:#92400e">Diesel Maintenance</span><span class="wftag" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d">₹/hr</span></div>
+        <div class="wfhnt">Diesel service cost per run hour</div>
+        <input class="wffield" type="number" id="ev-dmnt" value="200" style="background:#fff;border:1.5px solid #fcd34d"/>
+      </div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#0f766e,#0d9488)" onclick="calcEV()">⚡ Calculate ROI</button>
+    <div id="ev-results" class="hidden rsec"></div>
+  </div>
+</div>
+
+<!-- ══ CHARGING ══ -->
+<div class="screen" id="screen-charging">
+  <div class="mobile-tbar" style="background:linear-gradient(135deg,#5b21b6,#7c3aed)">
+    <button class="back-btn" onclick="nav('home')">‹</button>
+    <span style="font-size:20px">🔌</span>
+    <div><div class="tbar-title">EV Charging Time</div><div class="tbar-sub">Battery &amp; Charger Calculator</div></div>
+  </div>
+  <div class="desktop-page-header">
+    <div class="desktop-page-icon" style="background:#faf5ff;border:1.5px solid #e9d5ff">🔌</div>
+    <div><div class="desktop-page-title">EV Charging Time</div><div class="desktop-page-sub">Calculate charge time from battery &amp; charger specifications</div></div>
+  </div>
+  <div class="page-body gap12">
+    <div style="background:#faf5ff;border-radius:14px;overflow:hidden;border:1.5px solid #c4b5fd">
+      <div class="chead" style="background:#ede9fe"><div class="cbar" style="background:#7c3aed"></div><span class="clabel" style="color:#5b21b6">Battery Capacity</span></div>
+      <div style="padding:13px 15px;border-bottom:1px solid #f5f3ff">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+          <span style="font-size:14px">🔋</span><span style="font-size:13px;font-weight:700;color:#111827;flex:1">Battery Size</span>
+          <div class="tgrp" style="border-color:#c4b5fd;background:#ede9fe">
+            <button class="tbtn on" id="batt-kwh-btn" onclick="setBattUnit('kwh')" style="background:#7c3aed;color:#fff">kWh</button>
+            <button class="tbtn" id="batt-ah-btn" onclick="setBattUnit('ah')" style="color:#6b7280">Ah+V</button>
+          </div>
+        </div>
+        <div id="batt-kwh-row">
+          <input type="number" id="ch-batt-kwh" value="200" style="width:100%;padding:11px 14px;background:#fff;border:1.5px solid #c4b5fd;border-radius:10px;color:#111827;font-size:20px;font-weight:700;outline:none;font-family:'Inter',sans-serif"/>
+        </div>
+        <div id="batt-ah-row" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:5px">CAPACITY (Ah)</div>
+              <input type="number" id="ch-batt-ah" value="400" style="width:100%;padding:11px 14px;background:#fff;border:1.5px solid #c4b5fd;border-radius:10px;color:#111827;font-size:19px;font-weight:700;outline:none;font-family:'Inter',sans-serif" oninput="calcBattKwh()"/></div>
+            <div><div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:5px">VOLTAGE (V)</div>
+              <input type="number" id="ch-batt-v" value="600" style="width:100%;padding:11px 14px;background:#fff;border:1.5px solid #c4b5fd;border-radius:10px;color:#111827;font-size:19px;font-weight:700;outline:none;font-family:'Inter',sans-serif" oninput="calcBattKwh()"/></div>
+          </div>
+          <div id="batt-ah-result" style="font-size:12px;color:#7c3aed;margin-top:7px;font-weight:600"></div>
+        </div>
+      </div>
+      <div style="padding:13px 15px;border-bottom:1px solid #f5f3ff">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;letter-spacing:1.5px;margin-bottom:6px">CURRENT SOC — <span id="soc-val" style="color:#7c3aed">20%</span></div>
+        <input type="range" id="ch-soc" min="0" max="100" value="20" style="width:100%;accent-color:#7c3aed" oninput="document.getElementById('soc-val').textContent=this.value+'%'"/>
+      </div>
+      <div style="padding:13px 15px">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;letter-spacing:1.5px;margin-bottom:6px">TARGET SOC — <span id="target-val" style="color:#0d9488">80%</span></div>
+        <input type="range" id="ch-target" min="0" max="100" value="80" style="width:100%;accent-color:#0d9488" oninput="document.getElementById('target-val').textContent=this.value+'%'"/>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">80% recommended for daily use</div>
+      </div>
+    </div>
+    <div style="background:#f0fdf9;border-radius:14px;overflow:hidden;border:1.5px solid #a7f3d0">
+      <div class="chead" style="background:#d1fae5"><div class="cbar" style="background:#0d9488"></div><span class="clabel" style="color:#065f46">Charger Power</span></div>
+      <div style="padding:13px 15px;border-bottom:1px solid #f0fdf9">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+          <span>⚡</span><span style="font-size:13px;font-weight:700;color:#111827;flex:1">Charger Output</span>
+          <div class="tgrp" style="border-color:#a7f3d0;background:#d1fae5">
+            <button class="tbtn on" id="chgr-kw-btn" onclick="setChgrUnit('kw')" style="background:#0d9488;color:#fff">kW</button>
+            <button class="tbtn" id="chgr-amp-btn" onclick="setChgrUnit('amp')" style="color:#6b7280">A+V</button>
+          </div>
+        </div>
+        <div id="chgr-kw-row">
+          <input type="number" id="ch-chgr-kw" value="50" style="width:100%;padding:11px 14px;background:#fff;border:1.5px solid #a7f3d0;border-radius:10px;color:#111827;font-size:20px;font-weight:700;outline:none;font-family:'Inter',sans-serif"/>
+        </div>
+        <div id="chgr-amp-row" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:5px">CURRENT (A)</div>
+              <input type="number" id="ch-chgr-amp" value="100" style="width:100%;padding:11px 14px;background:#fff;border:1.5px solid #a7f3d0;border-radius:10px;color:#111827;font-size:19px;font-weight:700;outline:none;font-family:'Inter',sans-serif" oninput="calcChgrKw()"/></div>
+            <div><div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:5px">VOLTAGE (V)</div>
+              <input type="number" id="ch-chgr-v" value="500" style="width:100%;padding:11px 14px;background:#fff;border:1.5px solid #a7f3d0;border-radius:10px;color:#111827;font-size:19px;font-weight:700;outline:none;font-family:'Inter',sans-serif" oninput="calcChgrKw()"/></div>
+          </div>
+          <div id="chgr-amp-result" style="font-size:12px;color:#0d9488;margin-top:7px;font-weight:600"></div>
+        </div>
+      </div>
+      <div style="padding:13px 15px">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;letter-spacing:1.5px;margin-bottom:6px">CHARGER EFFICIENCY — <span id="eff-val" style="color:#0d9488">90%</span></div>
+        <input type="range" id="ch-eff" min="70" max="100" value="90" style="width:100%;accent-color:#0d9488" oninput="document.getElementById('eff-val').textContent=this.value+'%'"/>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">AC: 85–92% · DC fast: 90–95%</div>
+      </div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#5b21b6,#7c3aed)" onclick="calcCharging()">🔌 Calculate Charging Time</button>
+    <div id="charging-results" class="hidden rsec"></div>
+  </div>
+</div>
+
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<nav class="mobile-bnav">
+  <button class="nb active" id="nav-home" onclick="nav('home')"><span class="ni">🏠</span><span class="nl">Home</span><div class="ndot"></div></button>
+  <button class="nb" id="nav-loader" onclick="nav('loader')"><span class="ni">🚜</span><span class="nl">Produc.</span><div class="ndot"></div></button>
+  <button class="nb" id="nav-unit" onclick="nav('unit')"><span class="ni">📐</span><span class="nl">Units</span><div class="ndot"></div></button>
+  <button class="nb" id="nav-emi" onclick="nav('emi')"><span class="ni">🏦</span><span class="nl">EMI</span><div class="ndot"></div></button>
+  <button class="nb" id="nav-ev" onclick="nav('ev')"><span class="ni">⚡</span><span class="nl">EV ROI</span><div class="ndot"></div></button>
+  <button class="nb" id="nav-charging" onclick="nav('charging')"><span class="ni">🔌</span><span class="nl">Charge</span><div class="ndot"></div></button>
+</nav>
+
+</div><!-- /.main-content -->
+</div><!-- /.app-shell -->
+
+<script>
+/* ══════════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════════ */
+function nav(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>{b.classList.remove('active');b.querySelector('.nl').style.color='';});
+  document.querySelectorAll('.snav-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  const nb=document.getElementById('nav-'+id);
+  if(nb){nb.classList.add('active');nb.querySelector('.nl').style.color='#2563eb';}
+  const sn=document.getElementById('snav-'+id);
+  if(sn) sn.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* ══════════════════════════════════════════════════════
+   FORMATTERS
+══════════════════════════════════════════════════════ */
+function fmtIN(n){
+  const a=Math.abs(Math.round(n));
+  let s=a>=1e7?(a/1e7).toFixed(2).replace(/\.?0+$/,'')+' Cr':a>=1e5?(a/1e5).toFixed(2).replace(/\.?0+$/,'')+' L':a.toLocaleString('en-IN');
+  return(n<0?'-':'')+'₹'+s;
+}
+const fmt=n=>Math.round(n).toLocaleString('en-IN');
+function f2(n){return Math.round(n*100)/100;}
+
+function updateFmt(iid,fid,color){
+  const v=parseFloat(document.getElementById(iid).value),el=document.getElementById(fid);
+  if(el){el.textContent=v>0?'= '+fmtIN(v):'';if(color)el.style.color=color;}
+}
+window.addEventListener('load',()=>{
+  updateFmt('ev-evprice','fmt-evprice','#0d9488');
+  updateFmt('ev-dslprice','fmt-dslprice','#374151');
+  buildUnitCats();
+});
+
+/* ══════════════════════════════════════════════════════
+   RESULT CARD BUILDERS
+══════════════════════════════════════════════════════ */
+function rc(label,val,unit,color,icon){
+  return`<div class="rc" style="background:${color}0f;border-color:${color}30">
+    <div class="rc-icon">${icon}</div>
+    <div class="rl" style="color:#6b7280">${label.toUpperCase()}</div>
+    <div class="rv" style="color:${color}">${val}</div>
+    <div class="ru" style="color:${color}">${unit}</div></div>`;
+}
+function hc(eye,val,sub,color){
+  return`<div class="hero-r" style="background:linear-gradient(135deg,${color},${color}cc)">
+    <div class="hero-rl">${eye}</div>
+    <div class="hero-rv">${val}</div>
+    <div class="hero-rs">${sub}</div></div>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   PRODUCTIVITY CALCULATION  — with Cost per Tonne
+══════════════════════════════════════════════════════ */
+function calcLoader(){
+  // EV productivity
+  const evCt=+document.getElementById('ev-ct').value;
+  const evBv=+document.getElementById('ev-bv').value;
+  const evMd=+document.getElementById('ev-md').value;
+  const evWt=+document.getElementById('ev-wt').value;
+  const evFf=+document.getElementById('ev-ff').value/100;
+  // Diesel productivity
+  const dlCt=+document.getElementById('dl-ct').value;
+  const dlBv=+document.getElementById('dl-bv').value;
+  const dlMd=+document.getElementById('dl-md').value;
+  const dlWt=+document.getElementById('dl-wt').value;
+  const dlFf=+document.getElementById('dl-ff').value/100;
+  // Energy & cost
+  const evKwhHr=+document.getElementById('ev-kwh-hr').value;
+  const evElecPrice=+document.getElementById('ev-elec-price').value;
+  const dlFuelHr=+document.getElementById('l-fc').value;
+  const dlFuelPrice=+document.getElementById('dl-fuel-price').value;
+
+  // Productivity calcs
+  const evCyc=(evWt*60)/evCt, evVol=evCyc*evBv*evFf, evTon=evVol*evMd;
+  const dlCyc=(dlWt*60)/dlCt, dlVol=dlCyc*dlBv*dlFf, dlTon=dlVol*dlMd;
+
+  // Cost per hour
+  const evEnergyHr=evKwhHr*evElecPrice;           // ₹/hr energy cost EV
+  const dlFuelCostHr=dlFuelHr*dlFuelPrice;        // ₹/hr fuel cost Diesel
+
+  // Cost per tonne = cost/hr ÷ tonnes/hr
+  const evCPT=evTon>0 ? evEnergyHr/evTon : 0;    // ₹/tonne EV
+  const dlCPT=dlTon>0 ? dlFuelCostHr/dlTon : 0;  // ₹/tonne Diesel
+
+  const diff=evTon-dlTon;
+  const pctMore=dlTon>0?((diff/dlTon)*100):0;
+  const evWinner=evTon>=dlTon;
+  const evCheaper=evCPT<=dlCPT;
+  const cptDiff=dlCPT-evCPT;
+  const cptPct=dlCPT>0?(cptDiff/dlCPT*100):0;
+
+  const el=document.getElementById('loader-results');
+
+  // ── Productivity VS banner ──
+  const vsHtml=`
+  <div class="vs-banner">
+    <div style="font-size:9px;font-weight:700;letter-spacing:2px;opacity:.55;text-transform:uppercase">Productivity Comparison</div>
+    <div class="vs-grid">
+      <div class="vs-box" style="background:rgba(13,148,136,.22);border:1px solid rgba(13,148,136,.35)">
+        <div class="vs-label">⚡ EV Machine</div>
+        <div class="vs-val">${f2(evTon)}</div>
+        <div class="vs-unit">tonnes / hour</div>
+        <div style="font-size:9px;margin-top:5px;opacity:.6">${f2(evCyc)} cycles · ${f2(evVol)} m³</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:20px">${evWinner?'🏆':'⚖️'}</div>
+        <div style="font-size:8px;font-weight:700;opacity:.4;margin-top:3px;letter-spacing:1px">VS</div>
+      </div>
+      <div class="vs-box" style="background:rgba(217,119,6,.22);border:1px solid rgba(217,119,6,.35)">
+        <div class="vs-label">⛽ Diesel</div>
+        <div class="vs-val">${f2(dlTon)}</div>
+        <div class="vs-unit">tonnes / hour</div>
+        <div style="font-size:9px;margin-top:5px;opacity:.6">${f2(dlCyc)} cycles · ${f2(dlVol)} m³</div>
+      </div>
+    </div>
+    ${Math.abs(diff)>0.01?`<div style="margin-top:10px;text-align:center;padding:8px 10px;background:rgba(255,255,255,.1);border-radius:8px;font-size:12px;font-weight:700">
+      ${evWinner?'⚡ EV':'⛽ Diesel'} is <span style="font-size:15px;color:${evWinner?'#6ee7b7':'#fcd34d'}">${Math.abs(pctMore).toFixed(1)}%</span> more productive
+    </div>`:'<div style="margin-top:8px;text-align:center;font-size:12px;opacity:.6">⚖️ Equal productivity</div>'}
+  </div>`;
+
+  // ── Cost per Tonne cards ──
+  const evCPTColor='#0d9488'; const dlCPTColor='#d97706';
+  const winnerCPT=evCheaper?'#0d9488':'#d97706';
+  const cptHtml=`
+  <div class="cpt-grid">
+    <div class="cpt-card" style="background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff">
+      <div class="cpt-head">⚡ EV — Energy Cost</div>
+      <div class="cpt-val">₹${f2(evCPT).toLocaleString('en-IN')}</div>
+      <div class="cpt-sub">per tonne produced</div>
+      <div class="cpt-breakdown">
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Energy consumed</span><span>${evKwhHr} kWh/hr</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Electricity price</span><span>₹${evElecPrice}/kWh</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Energy cost/hr</span><span>₹${f2(evEnergyHr).toLocaleString('en-IN')}</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Productivity</span><span>${f2(evTon)} t/hr</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.2)"><span>Cost per Tonne</span><span>₹${f2(evCPT).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+    <div class="cpt-card" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff">
+      <div class="cpt-head">⛽ Diesel — Fuel Cost</div>
+      <div class="cpt-val">₹${f2(dlCPT).toLocaleString('en-IN')}</div>
+      <div class="cpt-sub">per tonne produced</div>
+      <div class="cpt-breakdown">
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Fuel consumed</span><span>${dlFuelHr} L/hr</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Diesel price</span><span>₹${dlFuelPrice}/L</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Fuel cost/hr</span><span>₹${f2(dlFuelCostHr).toLocaleString('en-IN')}</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.15)"><span style="opacity:.7">Productivity</span><span>${f2(dlTon)} t/hr</span></div>
+        <div class="cpt-row" style="border-color:rgba(255,255,255,.2)"><span>Cost per Tonne</span><span>₹${f2(dlCPT).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="background:linear-gradient(135deg,${winnerCPT},${winnerCPT}cc);border-radius:14px;padding:16px 18px;color:#fff">
+    <div style="font-size:9px;font-weight:700;letter-spacing:2px;opacity:.65;margin-bottom:6px;text-transform:uppercase">Cost per Tonne Winner</div>
+    <div style="font-size:22px;font-weight:900">${evCheaper?'⚡ EV':'⛽ Diesel'} saves ₹${f2(Math.abs(cptDiff)).toLocaleString('en-IN')}/tonne</div>
+    <div style="font-size:12px;opacity:.75;margin-top:4px">${Math.abs(cptPct).toFixed(1)}% cheaper per tonne · At ${evTon>0?f2(evTon):f2(dlTon)} t/hr average</div>
+  </div>`;
+
+  // ── Detailed comparison table ──
+  const tableHtml=`
+  <div class="wcard" style="overflow:hidden">
+    <div class="chead"><div class="cbar" style="background:#1d4ed8"></div><span class="clabel">Full Comparison Table</span></div>
+    <div style="overflow-x:auto">
+    <table class="stbl">
+      <thead><tr>
+        <td>Parameter</td>
+        <td style="text-align:center;color:#0d9488">⚡ EV</td>
+        <td style="text-align:center;color:#d97706">⛽ Diesel</td>
+        <td style="text-align:center;color:#7c3aed">Better</td>
+      </tr></thead>
+      <tbody>
+        <tr><td>Cycle Time</td><td style="text-align:center;font-weight:700;color:#0d9488">${evCt}s</td><td style="text-align:center;font-weight:700;color:#d97706">${dlCt}s</td><td style="text-align:center">${evCt<dlCt?'⚡':'⛽'}</td></tr>
+        <tr><td>Bucket Volume</td><td style="text-align:center;font-weight:700;color:#0d9488">${evBv} m³</td><td style="text-align:center;font-weight:700;color:#d97706">${dlBv} m³</td><td style="text-align:center">${evBv>=dlBv?'⚡':'⛽'}</td></tr>
+        <tr><td>Fill Factor</td><td style="text-align:center;font-weight:700;color:#0d9488">${(evFf*100).toFixed(0)}%</td><td style="text-align:center;font-weight:700;color:#d97706">${(dlFf*100).toFixed(0)}%</td><td style="text-align:center">${evFf>=dlFf?'⚡':'⛽'}</td></tr>
+        <tr><td>Cycles / Hr</td><td style="text-align:center;font-weight:700;color:#0d9488">${f2(evCyc)}</td><td style="text-align:center;font-weight:700;color:#d97706">${f2(dlCyc)}</td><td style="text-align:center">${evCyc>=dlCyc?'⚡':'⛽'}</td></tr>
+        <tr><td>Volume / Hr</td><td style="text-align:center;font-weight:700;color:#0d9488">${f2(evVol)} m³</td><td style="text-align:center;font-weight:700;color:#d97706">${f2(dlVol)} m³</td><td style="text-align:center">${evVol>=dlVol?'⚡':'⛽'}</td></tr>
+        <tr style="background:#f9fafb"><td style="font-weight:700">Productivity (t/hr)</td><td style="text-align:center;font-weight:800;color:#0d9488;font-size:14px">${f2(evTon)}</td><td style="text-align:center;font-weight:800;color:#d97706;font-size:14px">${f2(dlTon)}</td><td style="text-align:center;font-size:16px">${evWinner?'⚡':'⛽'}</td></tr>
+        <tr><td>Energy/Fuel per hr</td><td style="text-align:center;font-weight:700;color:#0d9488">${evKwhHr} kWh</td><td style="text-align:center;font-weight:700;color:#d97706">${dlFuelHr} L</td><td style="text-align:center">—</td></tr>
+        <tr><td>Unit Price</td><td style="text-align:center;font-weight:700;color:#0d9488">₹${evElecPrice}/kWh</td><td style="text-align:center;font-weight:700;color:#d97706">₹${dlFuelPrice}/L</td><td style="text-align:center">—</td></tr>
+        <tr><td>Energy/Fuel Cost/hr</td><td style="text-align:center;font-weight:700;color:#0d9488">₹${f2(evEnergyHr).toLocaleString('en-IN')}</td><td style="text-align:center;font-weight:700;color:#d97706">₹${f2(dlFuelCostHr).toLocaleString('en-IN')}</td><td style="text-align:center">${evEnergyHr<=dlFuelCostHr?'⚡':'⛽'}</td></tr>
+        <tr style="background:#f9fafb"><td style="font-weight:700">Cost per Tonne</td><td style="text-align:center;font-weight:800;color:#0d9488;font-size:14px">₹${f2(evCPT).toLocaleString('en-IN')}</td><td style="text-align:center;font-weight:800;color:#d97706;font-size:14px">₹${f2(dlCPT).toLocaleString('en-IN')}</td><td style="text-align:center;font-size:16px">${evCheaper?'⚡':'⛽'}</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>`;
+
+  // store data for PDF
+  window._prodData={
+    evCt,evBv,evMd,evWt,evFf,evKwhHr,evElecPrice,
+    dlCt,dlBv,dlMd,dlWt,dlFf,dlFuelHr,dlFuelPrice,
+    evCyc,evVol,evTon,dlCyc,dlVol,dlTon,
+    evEnergyHr,dlFuelCostHr,evCPT,dlCPT,
+    diff,pctMore,evWinner,evCheaper,cptDiff,cptPct
+  };
+
+  const exportBtn=`<button onclick="exportProdPdf()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#c2410c,#ea580c);color:#fff;font-size:13px;font-weight:700;letter-spacing:.8px;border:none;cursor:pointer;text-transform:uppercase;font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(194,65,12,.3);margin-top:0">📄 Export Productivity PDF Report</button>`;
+
+  el.innerHTML = vsHtml + cptHtml + tableHtml + exportBtn;
+  el.classList.remove('hidden');el.classList.add('su');
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ══════════════════════════════════════════════════════
+   PRODUCTIVITY PDF EXPORT
+══════════════════════════════════════════════════════ */
+function exportProdPdf(){
+  const d=window._prodData; if(!d)return;
+  const date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const f2=n=>Math.round(n*100)/100;
+
+  const html=`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#fff;color:#111827;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{margin:14mm;size:A4}
+@media print{.np{display:none!important}}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 13px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;background:#f9fafb;text-align:left;border-bottom:2px solid #e5e7eb}
+td{padding:9px 13px;font-size:12px;border-bottom:1px solid #f3f4f6;color:#374151}
+tr:last-child td{border-bottom:none}
+.num{text-align:right;font-weight:700}
+.green{color:#0d9488}.amber{color:#d97706}.blue{color:#2563eb}.purple{color:#7c3aed}
+</style>
+</head>
+<body>
+
+<!-- PRINT BUTTON -->
+<div class="np" style="position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:999">
+  <button onclick="window.print()" style="padding:9px 20px;background:#ea580c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🖨 Print / Save PDF</button>
+  <button onclick="window.close()" style="padding:9px 12px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif">✕</button>
+</div>
+
+<div style="max-width:760px;margin:0 auto;padding:28px 24px">
+
+  <!-- ── HEADER BANNER ── -->
+  <div style="background:linear-gradient(135deg,#0f172a 0%,#c2410c 50%,#ea580c 100%);border-radius:16px;padding:26px 28px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px">⚡</div>
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.5);text-transform:uppercase">EvCalc v4</div>
+          <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.1">Productivity Report</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,.65)">EV vs Diesel — Cycles, Tonnes &amp; Cost per Tonne Analysis</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px">Generated on</div>
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85)">${date}</div>
+    </div>
+  </div>
+
+  <!-- ── KPI STRIP ── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+    <div style="background:#f0fdf9;border:1.5px solid #a7f3d0;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:#065f46;text-transform:uppercase;margin-bottom:6px">⚡ EV Productivity</div>
+      <div style="font-size:26px;font-weight:900;color:#0d9488">${f2(d.evTon)}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:3px">tonnes / hour</div>
+    </div>
+    <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:#92400e;text-transform:uppercase;margin-bottom:6px">⛽ Diesel Productivity</div>
+      <div style="font-size:26px;font-weight:900;color:#d97706">${f2(d.dlTon)}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:3px">tonnes / hour</div>
+    </div>
+    <div style="background:#f0fdf9;border:1.5px solid #a7f3d0;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:#065f46;text-transform:uppercase;margin-bottom:6px">⚡ EV Cost/Tonne</div>
+      <div style="font-size:24px;font-weight:900;color:#0d9488">₹${f2(d.evCPT).toLocaleString('en-IN')}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:3px">per tonne</div>
+    </div>
+    <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:#92400e;text-transform:uppercase;margin-bottom:6px">⛽ Diesel Cost/Tonne</div>
+      <div style="font-size:24px;font-weight:900;color:#d97706">₹${f2(d.dlCPT).toLocaleString('en-IN')}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:3px">per tonne</div>
+    </div>
+  </div>
+
+  <!-- ── WINNER BANNER ── -->
+  <div style="background:linear-gradient(135deg,${d.evWinner?'#0f766e':'#b45309'},${d.evWinner?'#0d9488':'#d97706'});border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:4px">🏆 Productivity Winner</div>
+      <div style="font-size:18px;font-weight:800;color:#fff">${d.evWinner?'⚡ EV Machine':'⛽ Diesel Machine'} — ${Math.abs(d.pctMore).toFixed(1)}% more productive</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:4px">💰 Cost/Tonne Winner</div>
+      <div style="font-size:16px;font-weight:800;color:#fff">${d.evCheaper?'⚡ EV':'⛽ Diesel'} saves ₹${f2(Math.abs(d.cptDiff)).toLocaleString('en-IN')}/tonne</div>
+    </div>
+  </div>
+
+  <!-- ── TWO COLUMN INPUT SUMMARY ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+
+    <!-- EV inputs -->
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#065f46;background:#d1fae5;padding:9px 13px;border-radius:8px 8px 0 0;text-transform:uppercase">⚡ EV Machine — Inputs</div>
+      <table style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+        <tbody>
+          <tr><td>Cycle Time</td><td class="num green">${d.evCt} sec</td></tr>
+          <tr><td>Bucket Volume</td><td class="num green">${d.evBv} m³</td></tr>
+          <tr><td>Material Density</td><td class="num green">${d.evMd} t/m³</td></tr>
+          <tr><td>Working Time</td><td class="num green">${d.evWt} min/hr</td></tr>
+          <tr><td>Fill Factor</td><td class="num green">${(d.evFf*100).toFixed(0)}%</td></tr>
+          <tr><td>Energy Consumption</td><td class="num green">${d.evKwhHr} kWh/hr</td></tr>
+          <tr><td>Electricity Price</td><td class="num green">₹${d.evElecPrice}/kWh</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Diesel inputs -->
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#92400e;background:#fef3c7;padding:9px 13px;border-radius:8px 8px 0 0;text-transform:uppercase">⛽ Diesel Machine — Inputs</div>
+      <table style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+        <tbody>
+          <tr><td>Cycle Time</td><td class="num amber">${d.dlCt} sec</td></tr>
+          <tr><td>Bucket Volume</td><td class="num amber">${d.dlBv} m³</td></tr>
+          <tr><td>Material Density</td><td class="num amber">${d.dlMd} t/m³</td></tr>
+          <tr><td>Working Time</td><td class="num amber">${d.dlWt} min/hr</td></tr>
+          <tr><td>Fill Factor</td><td class="num amber">${(d.dlFf*100).toFixed(0)}%</td></tr>
+          <tr><td>Fuel Consumption</td><td class="num amber">${d.dlFuelHr} L/hr</td></tr>
+          <tr><td>Diesel Price</td><td class="num amber">₹${d.dlFuelPrice}/L</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── FULL COMPARISON TABLE ── -->
+  <div style="margin-bottom:20px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#1d4ed8;background:#dbeafe;padding:9px 13px;border-radius:8px 8px 0 0;text-transform:uppercase">📊 Full Comparison Results</div>
+    <table style="border:1px solid #e5e7eb;border-top:none">
+      <thead>
+        <tr><th>Parameter</th><th style="text-align:right;color:#0d9488">⚡ EV</th><th style="text-align:right;color:#d97706">⛽ Diesel</th><th style="text-align:right">Better</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Cycles per Hour</td><td class="num green">${f2(d.evCyc)}</td><td class="num amber">${f2(d.dlCyc)}</td><td class="num">${d.evCyc>=d.dlCyc?'⚡':'⛽'}</td></tr>
+        <tr><td>Volume per Hour</td><td class="num green">${f2(d.evVol)} m³</td><td class="num amber">${f2(d.dlVol)} m³</td><td class="num">${d.evVol>=d.dlVol?'⚡':'⛽'}</td></tr>
+        <tr style="background:#f0fdf9"><td style="font-weight:700">Productivity (t/hr)</td><td class="num green" style="font-size:14px;font-weight:800">${f2(d.evTon)}</td><td class="num amber" style="font-size:14px;font-weight:800">${f2(d.dlTon)}</td><td class="num" style="font-size:16px">${d.evWinner?'⚡':'⛽'}</td></tr>
+        <tr><td>Energy/Fuel Cost per Hour</td><td class="num green">₹${f2(d.evEnergyHr).toLocaleString('en-IN')}</td><td class="num amber">₹${f2(d.dlFuelCostHr).toLocaleString('en-IN')}</td><td class="num">${d.evEnergyHr<=d.dlFuelCostHr?'⚡':'⛽'}</td></tr>
+        <tr style="background:#fef9ee"><td style="font-weight:700">Cost per Tonne (₹/t)</td><td class="num green" style="font-size:14px;font-weight:800">₹${f2(d.evCPT).toLocaleString('en-IN')}</td><td class="num amber" style="font-size:14px;font-weight:800">₹${f2(d.dlCPT).toLocaleString('en-IN')}</td><td class="num" style="font-size:16px">${d.evCheaper?'⚡':'⛽'}</td></tr>
+        <tr><td>Cost Saving per Tonne</td><td colspan="2" class="num" style="text-align:right;font-weight:700;color:${d.evCheaper?'#0d9488':'#d97706'}">₹${f2(Math.abs(d.cptDiff)).toLocaleString('en-IN')} / tonne (${Math.abs(d.cptPct).toFixed(1)}% cheaper)</td><td class="num">${d.evCheaper?'⚡':'⛽'}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── COST PER TONNE BREAKDOWN ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+    <div style="background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:12px;padding:16px 18px;color:#fff">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;opacity:.7;margin-bottom:8px;text-transform:uppercase">⚡ EV — Cost Breakdown</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">kWh/hr consumed</span><span>${d.evKwhHr}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">× ₹/kWh price</span><span>₹${d.evElecPrice}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">= Energy cost/hr</span><span>₹${f2(d.evEnergyHr).toLocaleString('en-IN')}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">÷ Productivity</span><span>${f2(d.evTon)} t/hr</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px"><span>= Cost per Tonne</span><span>₹${f2(d.evCPT).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+    <div style="background:linear-gradient(135deg,#b45309,#d97706);border-radius:12px;padding:16px 18px;color:#fff">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;opacity:.7;margin-bottom:8px;text-transform:uppercase">⛽ Diesel — Cost Breakdown</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">L/hr consumed</span><span>${d.dlFuelHr}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">× ₹/litre price</span><span>₹${d.dlFuelPrice}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">= Fuel cost/hr</span><span>₹${f2(d.dlFuelCostHr).toLocaleString('en-IN')}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.15)"><span style="opacity:.75">÷ Productivity</span><span>${f2(d.dlTon)} t/hr</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px"><span>= Cost per Tonne</span><span>₹${f2(d.dlCPT).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="margin-top:28px;padding-top:16px;border-top:1.5px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#f97316" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:900;color:#111827;letter-spacing:-0.4px;line-height:1.1">EvCalc</div>
+        <div style="font-size:9px;color:#9ca3af;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;margin-top:2px">EV &amp; Field Calculator Suite v4.0</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:800;color:#111827;letter-spacing:-0.2px">Gaurav Thakur</div>
+      <div style="font-size:12px;color:#374151;margin-top:3px;font-weight:500">+91 84276 31050</div>
+      <div style="font-size:9px;color:#9ca3af;margin-top:2px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">Developer &middot; EvCalc Suite</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const w=window.open('','_blank','width=900,height=720');
+  w.document.write(html);w.document.close();w.focus();
+}
+
+/* ══════════════════════════════════════════════════════
+   EMI CALCULATOR
+══════════════════════════════════════════════════════ */
+let tenureType='months',emiType='reducing';
+function setTenure(t){tenureType=t;['mo','yr'].forEach(x=>{document.getElementById('btn-'+x).classList.toggle('on',x===(t==='months'?'mo':'yr'));});}
+function setEmiType(t){emiType=t;document.getElementById('emi-reducing-btn').classList.toggle('active',t==='reducing');document.getElementById('emi-flat-btn').classList.toggle('active',t==='flat');}
+
+function calcEMI(){
+  const P=+document.getElementById('e-p').value,annR=+document.getElementById('e-r').value,tenV=+document.getElementById('e-t').value;
+  const months=tenureType==='years'?tenV*12:tenV,r=annR/12/100;
+  let emi,totalInt,totalPay;
+  if(emiType==='flat'){totalInt=P*annR/100*(months/12);emi=Math.round(((P+totalInt)/months)*100)/100;totalPay=Math.round(emi*months);totalInt=Math.round(totalPay-P);}
+  else{if(r===0){emi=P/months;totalPay=P;totalInt=0;}else{const e=P*r*Math.pow(1+r,months)/(Math.pow(1+r,months)-1);emi=Math.round(e*100)/100;totalPay=Math.round(emi*months);totalInt=totalPay-P;}}
+  const pPct=Math.round((P/totalPay)*100),tenLabel=tenureType==='years'?`${tenV} yrs (${months} months)`:`${months} months`,methodLabel=emiType==='flat'?'Flat Rate':'Reducing Balance';
+  let schedule=[];
+  if(emiType==='flat'){const mInt=Math.round((P*(annR/100)*(months/12)/months)*100)/100,mPrin=Math.round((P/months)*100)/100;let bal=P;for(let m=1;m<=months;m++){bal=Math.max(0,Math.round((bal-mPrin)*100)/100);schedule.push({m,emi,int:mInt,prin:mPrin,bal});}}
+  else{let bal=P;for(let m=1;m<=months;m++){const ip=Math.round(bal*r*100)/100,pp=Math.round((emi-ip)*100)/100;bal=Math.max(0,Math.round((bal-pp)*100)/100);schedule.push({m,emi,int:ip,prin:pp,bal});}}
+  let allMonthRows='';
+  schedule.forEach(m=>{allMonthRows+=`<tr><td style="color:#374151;font-weight:600">${m.m}</td><td style="text-align:right;color:#16a34a;font-weight:700">₹${fmt(m.emi)}</td><td style="text-align:right;color:#2563eb;font-weight:700">₹${fmt(m.prin)}</td><td style="text-align:right;color:#dc2626;font-weight:700">₹${fmt(m.int)}</td><td style="text-align:right;color:#374151;font-weight:600">₹${fmt(m.bal)}</td></tr>`;});
+  let yearRows='';
+  for(let y=1;y<=Math.ceil(months/12);y++){const ym=schedule.slice((y-1)*12,Math.min(y*12,months));const yi=ym.reduce((a,x)=>a+x.int,0),yp=ym.reduce((a,x)=>a+x.prin,0),yb=ym[ym.length-1].bal;yearRows+=`<tr><td style="color:#374151;font-weight:600">Year ${y}</td><td style="text-align:right;color:#16a34a;font-weight:700">₹${fmt(emi*ym.length)}</td><td style="text-align:right;color:#2563eb;font-weight:700">₹${fmt(yp)}</td><td style="text-align:right;color:#dc2626;font-weight:700">₹${fmt(yi)}</td><td style="text-align:right;color:#374151;font-weight:600">₹${fmt(yb)}</td></tr>`;}
+  const th=`<thead><tr><td>Month</td><td style="text-align:right">EMI</td><td style="text-align:right">Principal</td><td style="text-align:right">Interest</td><td style="text-align:right">Balance</td></tr></thead>`;
+  const yth=`<thead><tr><td>Year</td><td style="text-align:right">Total EMI</td><td style="text-align:right">Principal</td><td style="text-align:right">Interest</td><td style="text-align:right">Balance</td></tr></thead>`;
+  window._emiData={P,annR,months,emiType,methodLabel,emi,totalPay,totalInt,pPct,tenLabel,schedule};
+  const el=document.getElementById('emi-results');
+  el.innerHTML=hc('MONTHLY EMI — '+methodLabel.toUpperCase(),'₹'+fmt(emi),'Per month · '+tenLabel,'#16a34a')+
+    `<div class="rg">${rc('Principal','₹'+fmt(P),'loan amount','#2563eb','💰')}${rc('Total Interest','₹'+fmt(totalInt),'total interest','#dc2626','📈')}${rc('Total Payment','₹'+fmt(totalPay),'principal+interest','#ea580c','💳')}${rc('Interest Share',(100-pPct)+'%','of total','#7c3aed','🥧')}</div>
+    <div class="wcard"><div class="chead"><div class="cbar" style="background:#16a34a"></div><span class="clabel">Payment Breakdown</span></div>
+      <div style="padding:14px 15px"><div style="height:10px;background:#f3f4f6;border-radius:99px;overflow:hidden;display:flex;margin-bottom:8px"><div style="width:${pPct}%;background:#2563eb"></div><div style="flex:1;background:#dc2626"></div></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:#374151;font-weight:500;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:#2563eb;border-radius:2px;display:inline-block"></span>Principal ${pPct}%</span><span style="font-size:12px;color:#374151;font-weight:500;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:#dc2626;border-radius:2px;display:inline-block"></span>Interest ${100-pPct}%</span></div></div></div>
+    <div class="wcard"><div class="chead"><div class="cbar" style="background:#2563eb"></div><span class="clabel">EMI Schedule (${months} months)</span></div>
+      <div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table class="stbl">${th}<tbody>${allMonthRows}</tbody></table></div></div>
+    ${months>12?`<div class="wcard"><div class="chead"><div class="cbar" style="background:#7c3aed"></div><span class="clabel">Year-Wise Summary</span></div><div style="overflow-x:auto"><table class="stbl">${yth}<tbody>${yearRows}</tbody></table></div></div>`:''}
+    <button onclick="exportEMIPdf()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;font-size:13px;font-weight:700;letter-spacing:.8px;border:none;cursor:pointer;text-transform:uppercase;font-family:'Inter',sans-serif">📄 Export PDF</button>`;
+  el.classList.remove('hidden');el.classList.add('su');el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function exportEMIPdf(){
+  const d=window._emiData;if(!d)return;
+  const date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  let mRows='',yRows='';
+  d.schedule.forEach(m=>{mRows+=`<tr><td>${m.m}</td><td>₹${fmt(m.emi)}</td><td>₹${fmt(m.prin)}</td><td>₹${fmt(m.int)}</td><td>₹${fmt(m.bal)}</td></tr>`;});
+  for(let y=1;y<=Math.ceil(d.months/12);y++){const ym=d.schedule.slice((y-1)*12,Math.min(y*12,d.months));const yi=ym.reduce((a,x)=>a+x.int,0),yp=ym.reduce((a,x)=>a+x.prin,0),yb=ym[ym.length-1].bal;yRows+=`<tr><td>Year ${y}</td><td>₹${fmt(d.emi*ym.length)}</td><td>₹${fmt(yp)}</td><td>₹${fmt(yi)}</td><td>₹${fmt(yb)}</td></tr>`;}
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:12mm;size:A4}@media print{.np{display:none!important}}table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6;text-align:left}th{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9ca3af;background:#fafafa}td{color:#111827}td:not(:first-child){text-align:right;font-weight:600}</style></head><body>
+  <div class="np" style="position:fixed;top:14px;right:14px;z-index:999;display:flex;gap:8px"><button onclick="window.print()" style="padding:9px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Print</button><button onclick="window.close()" style="padding:9px 12px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;cursor:pointer">✕</button></div>
+  <div style="max-width:720px;margin:0 auto;padding:24px 20px">
+    <div style="background:linear-gradient(135deg,#15803d,#16a34a);border-radius:14px;padding:22px 24px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:9px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.6);margin-bottom:5px">EVCALC v4</div><div style="font-size:24px;font-weight:800;color:#fff">EMI Report</div><div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px">${d.methodLabel}</div></div><div style="font-size:10px;color:rgba(255,255,255,.6)">${date}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">${[['Monthly EMI','₹'+fmt(d.emi),'#16a34a'],['Loan','₹'+fmt(d.P),'#2563eb'],['Interest','₹'+fmt(d.totalInt),'#dc2626'],['Total','₹'+fmt(d.totalPay),'#ea580c']].map(([l,v,c])=>`<div style="background:${c}0f;border:1.5px solid ${c}30;border-radius:10px;padding:12px;text-align:center"><div style="font-size:9px;font-weight:700;letter-spacing:1px;color:#6b7280;margin-bottom:5px;text-transform:uppercase">${l}</div><div style="font-size:18px;font-weight:800;color:${c}">${v}</div></div>`).join('')}</div>
+    ${d.months>12?`<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#6b7280;text-transform:uppercase;margin-bottom:8px">Year Summary</div><table><thead><tr><th>Year</th><th>EMI Paid</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody>${yRows}</tbody></table></div>`:''}
+    <div><div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#6b7280;text-transform:uppercase;margin-bottom:8px">Monthly Schedule</div><table><thead><tr><th>Month</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody>${mRows}</tbody></table></div>
+  
+    <!-- footer -->
+    <div style="border-top:2px solid #e5e7eb;padding-top:14px;margin-top:24px;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,#0f172a,#1d4ed8);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px">⚡</div>
+        <div><div style="font-size:13px;font-weight:800;color:#111827">EvCalc</div><div style="font-size:9px;color:#9ca3af;font-weight:600;letter-spacing:1.5px;text-transform:uppercase">EV & Field Calculator Suite v4.0</div></div>
+      </div>
+    </div>
+  <!-- FOOTER -->
+  <div style="margin-top:28px;padding-top:16px;border-top:1.5px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#f97316" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:900;color:#111827;letter-spacing:-0.4px;line-height:1.1">EvCalc</div>
+        <div style="font-size:9px;color:#9ca3af;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;margin-top:2px">EV &amp; Field Calculator Suite v4.0</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:800;color:#111827;letter-spacing:-0.2px">Gaurav Thakur</div>
+      <div style="font-size:12px;color:#374151;margin-top:3px;font-weight:500">+91 84276 31050</div>
+      <div style="font-size:9px;color:#9ca3af;margin-top:2px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">Developer &middot; EvCalc Suite</div>
+    </div>
+  </div>
+  </div></body></html>`;
+  const w=window.open('','_blank','width=880,height=700');w.document.write(html);w.document.close();w.focus();
+}
+
+/* ══════════════════════════════════════════════════════
+   EV ROI with Payback Chart
+══════════════════════════════════════════════════════ */
+function calcEV(){
+  const evP=+document.getElementById('ev-evprice').value,dslP=+document.getElementById('ev-dslprice').value;
+  const dhr=+document.getElementById('ev-dhr').value,wdy=+document.getElementById('ev-wdy').value;
+  const kwh=+document.getElementById('ev-kwh').value,elec=+document.getElementById('ev-elec').value,emnt=+document.getElementById('ev-emnt').value;
+  const dlhr=+document.getElementById('ev-dlhr').value,dprc=+document.getElementById('ev-dprc').value,dmnt=+document.getElementById('ev-dmnt').value;
+  const annHrs=dhr*wdy,evAnn=annHrs*(kwh*elec+emnt),dslAnn=annHrs*(dlhr*dprc+dmnt);
+  const pDiff=evP-dslP,annSave=dslAnn-evAnn;
+  const pbY=annSave>0?pDiff/annSave:null,pbH=pbY!==null?pbY*annHrs:null;
+  const co2T=Math.round(annHrs*dlhr*2.68/100)/10,s5=Math.round(annSave*5-pDiff),s10=Math.round(annSave*10-pDiff);
+  let html=hc('ANNUAL MACHINE RUN HOURS',Math.round(annHrs).toLocaleString('en-IN')+' hrs',`${dhr} hrs/day × ${wdy} days`,'#0d9488')+
+    `<div class="rg"><div class="rc" style="background:#f0fdf9;border-color:#a7f3d0"><div class="rc-icon">⚡</div><div class="rl" style="color:#065f46">EV ANNUAL COST</div><div class="rv" style="color:#0d9488;font-size:17px">${fmtIN(evAnn)}</div><div class="ru" style="color:#0d9488">energy + maintenance</div></div><div class="rc" style="background:#fffbeb;border-color:#fcd34d"><div class="rc-icon">⛽</div><div class="rl" style="color:#92400e">DIESEL ANNUAL COST</div><div class="rv" style="color:#d97706;font-size:17px">${fmtIN(dslAnn)}</div><div class="ru" style="color:#d97706">fuel + maintenance</div></div></div>`;
+  html+=annSave>=0?hc('ANNUAL SAVING',fmtIN(annSave),'Saved every year by switching to EV','#0d9488'):hc('DIESEL IS CHEAPER BY',fmtIN(Math.abs(annSave)),'Per year','#dc2626');
+  if(pbY!==null&&annSave>0) html+=`<div class="rg"><div class="rc" style="background:#faf5ff;border-color:#e9d5ff"><div class="rl" style="color:#6b7280">PAYBACK PERIOD</div><div class="rv" style="color:#7c3aed">${Math.round(pbY*10)/10} yrs</div><div class="ru" style="color:#7c3aed">to break even</div></div><div class="rc" style="background:#f0fdf9;border-color:#a7f3d0"><div class="rl" style="color:#6b7280">PAYBACK HOURS</div><div class="rv" style="color:#0d9488">${Math.round(pbH).toLocaleString('en-IN')}</div><div class="ru" style="color:#0d9488">machine hours</div></div></div>`;
+  if(annSave>0) html+=`<div class="rg"><div class="rc" style="background:${s5>=0?'#f0fdf9':'#fff5f5'};border-color:${s5>=0?'#a7f3d0':'#fecaca'}"><div class="rl" style="color:#6b7280">5-YEAR NET</div><div class="rv" style="color:${s5>=0?'#0d9488':'#dc2626'};font-size:16px">${fmtIN(s5)}</div></div><div class="rc" style="background:${s10>=0?'#f0fdf9':'#fff5f5'};border-color:${s10>=0?'#a7f3d0':'#fecaca'}"><div class="rl" style="color:#6b7280">10-YEAR NET</div><div class="rv" style="color:${s10>=0?'#0d9488':'#dc2626'};font-size:16px">${fmtIN(s10)}</div></div></div>`;
+  if(pbH!==null&&annSave>0){
+    const totalHrs=Math.max(pbH*1.6,annHrs*2),step=Math.ceil(totalHrs/8/500)*500||500;
+    const chartHrs=[];for(let h=0;h<=totalHrs+step;h+=step)chartHrs.push(Math.round(h));
+    const evCPH=kwh*elec+emnt,dlCPH=dlhr*dprc+dmnt,maxH=chartHrs[chartHrs.length-1];
+    const evMax=evP+evCPH*maxH,dlMax=dslP+dlCPH*maxH,maxVal=Math.max(evMax,dlMax);
+    const svgW=360,svgH=170,padL=58,padB=32,padT=16,padR=10,plotW=svgW-padL-padR,plotH=svgH-padT-padB;
+    const xP=h=>padL+(h/maxH)*plotW,yP=v=>padT+plotH-(v/maxVal)*plotH;
+    let evPts='',dlPts='';chartHrs.forEach(h=>{evPts+=`${xP(h).toFixed(1)},${yP(evP+evCPH*h).toFixed(1)} `;dlPts+=`${xP(h).toFixed(1)},${yP(dslP+dlCPH*h).toFixed(1)} `;});
+    let xL='';for(let i=0;i<=5;i++){const h=Math.round(maxH/5*i),x=xP(h);xL+=`<text x="${x.toFixed(1)}" y="${svgH-6}" text-anchor="middle" font-size="8" fill="#9ca3af">${h>=1000?(h/1000).toFixed(1)+'k':h}</text><line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${svgH-padB}" stroke="#f0f0f0" stroke-width="1"/>`;}
+    let yL='';for(let i=0;i<=4;i++){const v=maxVal/4*i,y=yP(v),lab=v>=1e7?(v/1e7).toFixed(1)+'Cr':v>=1e5?(v/1e5).toFixed(1)+'L':(v/1000).toFixed(0)+'K';yL+=`<text x="${(padL-4).toFixed(1)}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="8" fill="#9ca3af">${lab}</text><line x1="${padL}" y1="${y.toFixed(1)}" x2="${svgW-padR}" y2="${y.toFixed(1)}" stroke="#f0f0f0" stroke-width="1"/>`;}
+    const pbX=xP(pbH).toFixed(1);
+    html+=`<div class="wcard"><div class="chead"><div class="cbar" style="background:#7c3aed"></div><span class="clabel">Payback Hours Chart — Cumulative Cost</span></div>
+    <div style="padding:14px 12px 12px">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px">
+        <span style="font-size:10px;font-weight:600;color:#0d9488;display:flex;align-items:center;gap:5px"><span style="width:16px;height:2.5px;background:#0d9488;border-radius:2px;display:inline-block"></span>EV (purchase + running)</span>
+        <span style="font-size:10px;font-weight:600;color:#d97706;display:flex;align-items:center;gap:5px"><span style="width:16px;height:2.5px;background:#d97706;border-radius:2px;display:inline-block"></span>Diesel (purchase + running)</span>
+        <span style="font-size:10px;font-weight:600;color:#7c3aed;display:flex;align-items:center;gap:5px"><span style="width:14px;border-top:2px dashed #7c3aed;display:inline-block"></span>Break-even</span>
+      </div>
+      <svg width="100%" viewBox="0 0 ${svgW} ${svgH}" style="overflow:visible">${xL}${yL}
+        <polyline points="${dlPts.trim()}" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linejoin="round"/>
+        <polyline points="${evPts.trim()}" fill="none" stroke="#0d9488" stroke-width="2.2" stroke-linejoin="round"/>
+        <line x1="${pbX}" y1="${padT}" x2="${pbX}" y2="${svgH-padB}" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3,3"/>
+        <text x="${pbX}" y="${padT+10}" text-anchor="middle" font-size="8" fill="#7c3aed" font-weight="700">Break-even</text>
+        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${svgH-padB}" stroke="#e5e7eb" stroke-width="1"/>
+        <line x1="${padL}" y1="${svgH-padB}" x2="${svgW-padR}" y2="${svgH-padB}" stroke="#e5e7eb" stroke-width="1"/>
+      </svg>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:#9ca3af"><span>Machine Hours →</span><span>Cumulative Cost (₹)</span></div>
+      <div style="background:#faf5ff;border-radius:8px;padding:9px 12px;margin-top:10px;border:1px solid #e9d5ff">
+        <div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:3px">🎯 Break-even</div>
+        <div style="font-size:13px;font-weight:700;color:#111827">${Math.round(pbH).toLocaleString('en-IN')} hours · ${Math.round(pbY*10)/10} years</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">After this, EV saves ₹${Math.round(annSave/annHrs).toLocaleString('en-IN')}/hr</div>
+      </div>
+    </div></div>`;
+  }
+  html+=`<div style="background:#f0fdf4;border-radius:12px;padding:14px 16px;border:1.5px solid #bbf7d0"><div style="font-size:9px;font-weight:700;letter-spacing:2px;color:#15803d;margin-bottom:6px">🌿 CO₂ AVOIDED PER YEAR</div><div style="font-size:28px;font-weight:800;color:#15803d">${co2T} <span style="font-size:13px;font-weight:600">tonnes CO₂/year</span></div></div>
+  <div style="background:#fff;border-radius:12px;padding:13px 15px;border:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#374151;font-weight:500">EV price premium</span><span style="font-size:20px;font-weight:800;color:${pDiff>0?'#dc2626':'#0d9488'}">${pDiff>0?'+':''}${fmtIN(pDiff)}</span></div>`;
+  window._evData={evP,dslP,dhr,wdy,kwh,elec,emnt,dlhr,dprc,dmnt,annHrs:Math.round(annHrs),evAnn,dslAnn,annSave,pbY:pbY!==null?Math.round(pbY*10)/10:null,pbH:pbH!==null?Math.round(pbH):null,s5,s10,co2T,pDiff};
+  html+=`<button onclick="exportEVPdf()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;font-size:13px;font-weight:700;letter-spacing:.8px;border:none;cursor:pointer;text-transform:uppercase;font-family:'Inter',sans-serif">📄 Export PDF Report</button>`;
+  const el=document.getElementById('ev-results');el.innerHTML=html;el.classList.remove('hidden');el.classList.add('su');el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function exportEVPdf(){
+  const d=window._evData;if(!d)return;
+  const date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const row=(l,v,c)=>`<tr><td>${l}</td><td style="font-weight:700;color:${c||'#111827'}">${v}</td></tr>`;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:12mm}@media print{.np{display:none!important}}table{width:100%;border-collapse:collapse}td{padding:9px 13px;font-size:12px;border-bottom:1px solid #f3f4f6;color:#374151}td:last-child{text-align:right}</style></head><body>
+  <div class="np" style="position:fixed;top:14px;right:14px;z-index:999;display:flex;gap:8px"><button onclick="window.print()" style="padding:9px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🖨 Print</button><button onclick="window.close()" style="padding:9px 12px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;cursor:pointer">✕</button></div>
+  <div style="max-width:700px;margin:0 auto;padding:24px 20px">
+    <div style="background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:14px;padding:22px 24px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:9px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.6);margin-bottom:5px">EVCALC v4</div><div style="font-size:24px;font-weight:800;color:#fff">EV ROI Report</div></div><div style="font-size:10px;color:rgba(255,255,255,.6)">${date}</div></div>
+    <table style="margin-bottom:20px;border:1px solid #e5e7eb"><tbody>
+      ${row('Annual Run Hours',d.annHrs.toLocaleString('en-IN')+' hrs')}
+      ${row('EV Annual Cost',fmtIN(d.evAnn),'#0d9488')}
+      ${row('Diesel Annual Cost',fmtIN(d.dslAnn),'#d97706')}
+      ${row('Annual Saving',fmtIN(d.annSave),d.annSave>=0?'#0d9488':'#dc2626')}
+      ${d.pbY!==null&&d.annSave>0?row('Payback',d.pbY+' yrs / '+d.pbH.toLocaleString('en-IN')+' hrs','#7c3aed'):''}
+      ${row('5-Year Net',fmtIN(d.s5),d.s5>=0?'#0d9488':'#dc2626')}
+      ${row('10-Year Net',fmtIN(d.s10),d.s10>=0?'#0d9488':'#dc2626')}
+      ${row('CO₂ Avoided',d.co2T+' t/yr','#15803d')}
+      ${row('EV Price Premium',(d.pDiff>0?'+':'')+fmtIN(d.pDiff),d.pDiff>0?'#dc2626':'#0d9488')}
+    </tbody></table>
+  
+    <!-- footer -->
+    <div style="border-top:2px solid #e5e7eb;padding-top:14px;margin-top:24px;display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:34px;height:34px;background:linear-gradient(135deg,#0f172a,#1d4ed8);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px">⚡</div>
+        <div><div style="font-size:13px;font-weight:800;color:#111827">EvCalc</div><div style="font-size:9px;color:#9ca3af;font-weight:600;letter-spacing:1.5px;text-transform:uppercase">EV & Field Calculator Suite v4.0</div></div>
+      </div>
+    </div>
+  <!-- FOOTER -->
+  <div style="margin-top:28px;padding-top:16px;border-top:1.5px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#f97316" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:900;color:#111827;letter-spacing:-0.4px;line-height:1.1">EvCalc</div>
+        <div style="font-size:9px;color:#9ca3af;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;margin-top:2px">EV &amp; Field Calculator Suite v4.0</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:800;color:#111827;letter-spacing:-0.2px">Gaurav Thakur</div>
+      <div style="font-size:12px;color:#374151;margin-top:3px;font-weight:500">+91 84276 31050</div>
+      <div style="font-size:9px;color:#9ca3af;margin-top:2px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">Developer &middot; EvCalc Suite</div>
+    </div>
+  </div>
+  </div></body></html>`;
+  const w=window.open('','_blank','width=860,height=700');w.document.write(html);w.document.close();w.focus();
+}
+
+/* ══════════════════════════════════════════════════════
+   CHARGING TIME
+══════════════════════════════════════════════════════ */
+let battUnit='kwh',chgrUnit='kw';
+function setBattUnit(u){battUnit=u;document.getElementById('batt-kwh-row').style.display=u==='kwh'?'block':'none';document.getElementById('batt-ah-row').style.display=u==='ah'?'block':'none';document.getElementById('batt-kwh-btn').style.background=u==='kwh'?'#7c3aed':'transparent';document.getElementById('batt-kwh-btn').style.color=u==='kwh'?'#fff':'#6b7280';document.getElementById('batt-ah-btn').style.background=u==='ah'?'#7c3aed':'transparent';document.getElementById('batt-ah-btn').style.color=u==='ah'?'#fff':'#6b7280';}
+function setChgrUnit(u){chgrUnit=u;document.getElementById('chgr-kw-row').style.display=u==='kw'?'block':'none';document.getElementById('chgr-amp-row').style.display=u==='amp'?'block':'none';document.getElementById('chgr-kw-btn').style.background=u==='kw'?'#0d9488':'transparent';document.getElementById('chgr-kw-btn').style.color=u==='kw'?'#fff':'#6b7280';document.getElementById('chgr-amp-btn').style.background=u==='amp'?'#0d9488':'transparent';document.getElementById('chgr-amp-btn').style.color=u==='amp'?'#fff':'#6b7280';}
+function calcBattKwh(){const ah=+document.getElementById('ch-batt-ah').value,v=+document.getElementById('ch-batt-v').value;if(ah>0&&v>0)document.getElementById('batt-ah-result').textContent=`= ${((ah*v)/1000).toFixed(2)} kWh`;}
+function calcChgrKw(){const a=+document.getElementById('ch-chgr-amp').value,v=+document.getElementById('ch-chgr-v').value;if(a>0&&v>0)document.getElementById('chgr-amp-result').textContent=`= ${((a*v)/1000).toFixed(2)} kW`;}
+function getBattKwh(){return battUnit==='kwh'?+document.getElementById('ch-batt-kwh').value:(+document.getElementById('ch-batt-ah').value * +document.getElementById('ch-batt-v').value)/1000;}
+function getChgrKw(){return chgrUnit==='kw'?+document.getElementById('ch-chgr-kw').value:(+document.getElementById('ch-chgr-amp').value * +document.getElementById('ch-chgr-v').value)/1000;}
+function calcCharging(){
+  const bKwh=getBattKwh(),cKw=getChgrKw(),soc=+document.getElementById('ch-soc').value,tgt=+document.getElementById('ch-target').value,eff=+document.getElementById('ch-eff').value/100;
+  if(bKwh<=0||cKw<=0||tgt<=soc){alert('Target must be greater than current SOC');return;}
+  const eNet=bKwh*(tgt-soc)/100,eGrid=eNet/eff,hrs=eGrid/cKw;
+  const hh=Math.floor(hrs),mm=Math.round((hrs-hh)*60),ts=hh>0?`${hh}h ${mm}m`:`${mm} min`;
+  const fHrs=bKwh/(cKw*eff),fhh=Math.floor(fHrs),fmm=Math.round((fHrs-fhh)*60),fs=fhh>0?`${fhh}h ${fmm}m`:`${fmm} min`;
+  const el=document.getElementById('charging-results');
+  el.innerHTML=hc('CHARGING TIME',ts,`${soc}% → ${tgt}% · ${bKwh.toFixed(1)} kWh · ${cKw.toFixed(1)} kW`,'#7c3aed')+
+    `<div class="rg">${rc('Energy to Battery',eNet.toFixed(2)+' kWh','net energy','#7c3aed','🔋')}${rc('Grid Draw',eGrid.toFixed(2)+' kWh',`${Math.round(eff*100)}% efficiency`,'#2563eb','⚡')}${rc('Charger',cKw.toFixed(1)+' kW','rated output','#0d9488','🔌')}${rc('Full 0→100%',fs,'reference','#ea580c','⏱')}</div>
+    <div class="wcard"><div class="chead"><div class="cbar" style="background:#7c3aed"></div><span class="clabel">Battery State</span></div>
+      <div style="padding:14px 15px">
+        <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12px;font-weight:600;color:#374151">Current SOC</span><span style="font-size:13px;font-weight:800;color:#7c3aed">${soc}%</span></div><div style="height:11px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="width:${soc}%;height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12px;font-weight:600;color:#374151">Target SOC</span><span style="font-size:13px;font-weight:800;color:#0d9488">${tgt}%</span></div><div style="height:11px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="width:${tgt}%;height:100%;background:linear-gradient(90deg,#0d9488,#14b8a6)"></div></div></div>
+      </div>
+    </div>`;
+  el.classList.remove('hidden');el.classList.add('su');el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ══════════════════════════════════════════════════════
+   UNIT CONVERTER  (kVA uses PF=0.8)
+══════════════════════════════════════════════════════ */
+const POWER_FACTOR=0.8;
+const UCATS=[
+  {id:'length',icon:'📏',label:'Length',units:['meters','kilometers','miles','feet','inches','centimeters','yards','nautical miles']},
+  {id:'weight',icon:'⚖️',label:'Weight',units:['kilograms','grams','pounds','ounces','tonnes','milligrams','stones']},
+  {id:'temp',icon:'🌡️',label:'Temp',units:['Celsius','Fahrenheit','Kelvin']},
+  {id:'volume',icon:'🧪',label:'Volume',units:['liters','milliliters','gallons (US)','quarts','pints','cups','cubic meters','cubic feet']},
+  {id:'area',icon:'⬛',label:'Area',units:['sq meters','sq km','sq miles','acres','hectares','sq feet','sq inches']},
+  {id:'speed',icon:'💨',label:'Speed',units:['m/s','km/h','mph','knots','ft/s']},
+  {id:'time',icon:'⏱️',label:'Time',units:['seconds','minutes','hours','days','weeks','months','years']},
+  {id:'data',icon:'💾',label:'Data',units:['bytes','kilobytes','megabytes','gigabytes','terabytes','petabytes','bits']},
+  {id:'power',icon:'⚡',label:'Power',units:['watts','kilowatts','megawatts','horsepower (hp)','BTU/hr','kVA']},
+  {id:'energy',icon:'🔋',label:'Energy',units:['joules','kilojoules','kilowatt-hours','watt-hours','calories','kcal','BTU','electronvolts']},
+  {id:'force',icon:'💪',label:'Force',units:['newtons','kilonewtons','pound-force','kgf','dyne','kip']},
+  {id:'pressure',icon:'🔩',label:'Pressure',units:['pascal','kilopascal','megapascal','bar','psi','atm','mmHg','torr']},
+];
+const TBLS={
+  length:{meters:1,kilometers:1000,miles:1609.344,feet:0.3048,inches:0.0254,centimeters:0.01,yards:0.9144,'nautical miles':1852},
+  weight:{kilograms:1,grams:0.001,pounds:0.453592,ounces:0.0283495,tonnes:1000,milligrams:0.000001,stones:6.35029},
+  volume:{liters:1,milliliters:0.001,'gallons (US)':3.78541,quarts:0.946353,pints:0.473176,cups:0.236588,'cubic meters':1000,'cubic feet':28.3168},
+  area:{'sq meters':1,'sq km':1e6,'sq miles':2589988.11,acres:4046.856,hectares:10000,'sq feet':0.092903,'sq inches':0.00064516},
+  speed:{'m/s':1,'km/h':0.277778,mph:0.44704,knots:0.514444,'ft/s':0.3048},
+  time:{seconds:1,minutes:60,hours:3600,days:86400,weeks:604800,months:2629800,years:31557600},
+  data:{bytes:1,kilobytes:1024,megabytes:1048576,gigabytes:1073741824,terabytes:1099511627776,petabytes:1.12589990684e15,bits:0.125},
+  power:{watts:1,kilowatts:1000,megawatts:1e6,'horsepower (hp)':745.7,'BTU/hr':0.29307,kVA:POWER_FACTOR*1000},
+  energy:{joules:1,kilojoules:1000,'kilowatt-hours':3600000,'watt-hours':3600,calories:4.184,kcal:4184,BTU:1055.06,electronvolts:1.60218e-19},
+  force:{newtons:1,kilonewtons:1000,'pound-force':4.44822,kgf:9.80665,dyne:0.00001,kip:4448.22},
+  pressure:{pascal:1,kilopascal:1000,megapascal:1e6,bar:100000,psi:6894.76,atm:101325,mmHg:133.322,torr:133.322},
+};
+function convertUnit(val,from,to,cat){
+  const v=parseFloat(val);
+  if(cat==='temp'){let c=from==='Fahrenheit'?(v-32)*5/9:from==='Kelvin'?v-273.15:v;return to==='Fahrenheit'?c*9/5+32:to==='Kelvin'?c+273.15:c;}
+  return v*TBLS[cat][from]/TBLS[cat][to];
+}
+let activeCat='length';
+function buildUnitCats(){
+  const w=document.getElementById('unit-cats');
+  w.innerHTML=UCATS.map(c=>`<button class="cpill" onclick="selectCat('${c.id}')" style="background:${activeCat===c.id?'#2563eb':'#fff'};color:${activeCat===c.id?'#fff':'#374151'};border-color:${activeCat===c.id?'#2563eb':'#e5e7eb'}">${c.icon} ${c.label}</button>`).join('');
+  populateSelects(activeCat);
+}
+function selectCat(id){activeCat=id;buildUnitCats();document.getElementById('unit-result-box').textContent='—';document.getElementById('unit-result-label').classList.add('hidden');document.getElementById('pf-note').classList.add('hidden');}
+function populateSelects(catId){const cat=UCATS.find(c=>c.id===catId);document.getElementById('unit-from').innerHTML=cat.units.map((u,i)=>`<option value="${u}"${i===0?' selected':''}>${u}</option>`).join('');document.getElementById('unit-to').innerHTML=cat.units.map((u,i)=>`<option value="${u}"${i===1?' selected':''}>${u}</option>`).join('');}
+function doConvert(){
+  const val=parseFloat(document.getElementById('unit-input').value),from=document.getElementById('unit-from').value,to=document.getElementById('unit-to').value;
+  let r=convertUnit(val,from,to,activeCat);r=parseFloat(r.toPrecision(8));
+  document.getElementById('unit-result-box').textContent=r.toLocaleString();
+  document.getElementById('unit-result-text').textContent=`${val} ${from} = ${r.toLocaleString()} ${to}`;
+  document.getElementById('unit-result-label').classList.remove('hidden');
+  const pfNote=document.getElementById('pf-note'),pfText=document.getElementById('pf-note-text');
+  if(activeCat==='power'&&(from==='kVA'||to==='kVA')){
+    pfNote.classList.remove('hidden');
+    pfText.textContent=from==='kVA'?`${val} kVA × PF (${POWER_FACTOR}) = ${(val*POWER_FACTOR).toFixed(4)} kW — Apparent power → Real power`:`${val} ${from} ÷ PF (${POWER_FACTOR}) → ${r.toLocaleString()} kVA — Real power → Apparent power`;
+  } else {pfNote.classList.add('hidden');}
+}
+</script>
+</body>
+</html>
